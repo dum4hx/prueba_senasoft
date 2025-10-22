@@ -1,34 +1,84 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-5xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-lg">
-  <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">🎟️ Mis Reservas</h2>
 
-  <form action="{% url 'procesar_pago' %}" method="POST">
-    {% csrf_token %}
-    <div class="grid gap-4">
-      {% for reserva in reservas %}
-      <div class="flex justify-between items-center p-4 border rounded-xl shadow-sm bg-gray-50 hover:bg-gray-100 transition">
-        <div>
-          <p class="font-semibold text-gray-800">Vuelo: {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} → {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }}</p>
-          <p class="text-sm text-gray-500">Asiento: {{ reserva.asiento|default:"No asignado" }}</p>
-          <p class="text-sm text-gray-500">Fecha: {{ reserva.fk_vuelo.fecha_hora_salida|date:"d/m/Y H:i" }}</p>
-          <p class="text-cyan-700 font-semibold">💰 ${{ reserva.fk_vuelo.precio|floatformat:0 }}</p>
+<!-- Importar iconos PE 7S -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pe7-icon/1.0.4/css/pe-icon-7-stroke.min.css" integrity="sha512-QO5WZUZnpZKHKQqTTnXnC9o8jD3tF5efpl1L+Cn+VDUI9e7BrzVByAV3EGHiy3rQ6nA6vgr29KHGRNcNRWBbhA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<div class="min-h-screen bg-gray-100 py-12 px-4 flex justify-center">
+  <div class="w-full max-w-5xl bg-white shadow-2xl rounded-3xl p-10">
+<div class="text-center mb-10">
+  <div class="flex items-center justify-center mb-3">
+    <i class="pe-7s-ticket text-cyan-700 text-5xl"></i>
+  </div>
+  <h2 class="text-3xl font-bold text-cyan-700">Mis Reservas</h2>
+  <p class="text-gray-500 text-sm mt-2">Revisa tus vuelos, verifica los detalles y selecciona los que deseas pagar</p>
+</div>
+
+<form action="{% url 'procesar_pago' %}" method="POST" class="space-y-6">
+  {% csrf_token %}
+
+  {% if reservas %}
+    {% for reserva in reservas %}
+    <div class="relative border border-gray-200 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+      <div class="absolute top-0 left-0 h-full w-2 bg-cyan-600"></div>
+      <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        
+        <!-- Información del vuelo -->
+        <div class="flex-1 space-y-2">
+          <div class="flex items-center text-gray-800 font-semibold text-lg">
+            <i class="pe-7s-plane text-cyan-600 text-2xl mr-2"></i>
+            {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} 
+            <span class="mx-2 text-cyan-600">→</span>
+            {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }}
+          </div>
+          
+          <div class="flex items-center text-gray-600 text-sm">
+            <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+            Asiento: <span class="ml-1 font-medium">{{ reserva.asiento|default:"No asignado" }}</span>
+          </div>
+
+          <div class="flex items-center text-gray-600 text-sm">
+            <i class="pe-7s-date text-cyan-600 mr-2"></i>
+            Fecha Salida: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_salida|date:"d/m/Y - H:i" }}</span>
+          </div>
+
+          <div class="flex items-center text-gray-600 text-sm">
+            <i class="pe-7s-date text-cyan-600 mr-2"></i>
+            Fecha Llegada: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_llegada|date:"d/m/Y - H:i" }}</span>
+          </div>
+
+          <div class="flex items-center text-cyan-700 font-bold text-lg">
+            <i class="pe-7s-cash text-cyan-600 mr-2"></i>
+            ${{ reserva.fk_vuelo.precio|floatformat:0 }}
+          </div>
         </div>
+
+        <!-- Checkbox -->
         <div>
           <input type="checkbox" name="reservas_seleccionadas" value="{{ reserva.idReserva }}"
-                 class="w-5 h-5 text-cyan-600 focus:ring-cyan-500 rounded">
+                 class="w-6 h-6 text-cyan-700 border-gray-300 rounded focus:ring-2 focus:ring-cyan-600 cursor-pointer">
         </div>
       </div>
-      {% empty %}
-      <p class="text-center text-gray-600">No tienes reservas activas.</p>
-      {% endfor %}
     </div>
+    {% endfor %}
+  {% else %}
+    <div class="text-center py-16 bg-gray-50 rounded-2xl shadow-inner">
+      <i class="pe-7s-info text-cyan-600 text-5xl mb-3"></i>
+      <p class="text-gray-600 text-lg font-medium">No tienes reservas activas.</p>
+    </div>
+  {% endif %}
 
-    <div class="flex justify-center mt-6">
-      <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition">
-        💳 Pagar Seleccionadas
-      </button>
-    </div>
-  </form>
+  {% if reservas %}
+  <div class="text-center pt-8">
+    <button type="submit" 
+      class="inline-flex items-center gap-2 bg-cyan-700 hover:bg-cyan-800 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition-all duration-300">
+      <i class="pe-7s-credit text-xl"></i>
+      Pagar Seleccionadas
+    </button>
+  </div>
+  {% endif %}
+</form>
+</div>
 </div>
 {% endblock %}

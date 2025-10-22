@@ -35,7 +35,6 @@ urlpatterns = [
     path('mis_vuelos/descargar/<int:id_pago>/', views.descargar_tiquete_pdf, name='descargar_tiquete_pdf'),
 
 
-
 ]
 
 urlpatterns+=static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,38 +1,106 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-3xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-lg">
-  <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">💳 Confirmar Pago</h2>
 
-  <form action="{% url 'confirmar_pago' %}" method="POST">
-    {% csrf_token %}
-    <div class="space-y-4">
-      {% for reserva in reservas %}
-      <div class="p-4 border rounded-lg shadow-sm bg-gray-50">
-        <p><strong>Vuelo:</strong> {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} → {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }}</p>
-        <p><strong>Asiento:</strong> {{ reserva.asiento|default:"No asignado" }}</p>
-        <p><strong>Precio:</strong> ${{ reserva.fk_vuelo.precio|floatformat:0 }}</p>
-        <input type="hidden" name="reservas_confirmadas" value="{{ reserva.idReserva }}">
-      </div>
-      {% endfor %}
-    </div>
+<!-- Iconos PE 7S -->
 
-    <div class="mt-6">
-      <label for="metodo_pago" class="block text-sm font-medium text-gray-700 mb-1">Método de pago:</label>
-      <select name="metodo_pago" id="metodo_pago" class="w-full border-gray-300 rounded-lg p-2 focus:ring-cyan-500 focus:border-cyan-500">
-        {% for metodo in metodos %}
-        <option value="{{ metodo.idMetodoPago }}">{{ metodo.nombre }}</option>
-        {% endfor %}
-      </select>
-    </div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pe7-icon/1.0.4/css/pe-icon-7-stroke.min.css" integrity="sha512-QO5WZUZnpZKHKQqTTnXnC9o8jD3tF5efpl1L+Cn+VDUI9e7BrzVByAV3EGHiy3rQ6nA6vgr29KHGRNcNRWBbhA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <div class="mt-6 flex justify-between items-center">
-      <p class="text-lg font-semibold text-gray-800">Total a pagar: 
-        <span class="text-cyan-700">${{ total|floatformat:0 }}</span>
-      </p>
-      <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition">
-        Confirmar Pago
-      </button>
-    </div>
-  </form>
+<div class="min-h-screen bg-gray-100 py-12 px-4 flex justify-center">
+  <div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-10">
+
+<!-- Encabezado -->
+<div class="text-center mb-10">
+  <div class="flex items-center justify-center mb-3">
+    <i class="pe-7s-credit text-cyan-700 text-5xl"></i>
+  </div>
+  <h2 class="text-3xl font-bold text-cyan-700">Confirmar Pago</h2>
+  <p class="text-gray-500 text-sm mt-2">Revisa los detalles de tus reservas antes de confirmar el pago</p>
 </div>
+
+<form action="{% url 'confirmar_pago' %}" method="POST" class="space-y-8">
+  {% csrf_token %}
+  
+  <!-- Tarjetas de reservas -->
+  <div class="space-y-4">
+    {% for reserva in reservas %}
+    <div class="relative border border-gray-200 bg-gray-50 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+      <div class="absolute top-0 left-0 h-full w-2 bg-cyan-600"></div>
+      <div class="p-6 space-y-2">
+        <div class="flex items-center text-gray-800 font-semibold text-lg">
+          <i class="pe-7s-plane text-cyan-600 text-2xl mr-2"></i>
+          {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} 
+          <span class="mx-2 text-cyan-600">→</span>
+          {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }}
+        </div>
+
+        <div class="flex items-center text-gray-600 text-sm">
+          <i class="pe-7s-seat text-cyan-600 mr-2"></i>
+          Asiento: <span class="ml-1 font-medium">{{ reserva.asiento|default:"No asignado" }}</span>
+        </div>
+
+        <div class="flex items-center text-cyan-700 font-bold text-lg">
+          <i class="pe-7s-cash text-cyan-600 mr-2"></i>
+          ${{ reserva.fk_vuelo.precio|floatformat:0 }}
+        </div>
+      </div>
+      <input type="hidden" name="reservas_confirmadas" value="{{ reserva.idReserva }}">
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Método de pago -->
+  <div>
+    <label for="metodo_pago" class="block text-gray-700 font-semibold mb-2 flex items-center">
+      <i class="pe-7s-wallet text-cyan-600 text-xl mr-2"></i>
+      Método de Pago
+    </label>
+    <select name="metodo_pago" id="metodo_pago"
+      class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-cyan-600 focus:outline-none bg-white shadow-sm text-gray-700">
+      {% for metodo in metodos %}
+      <option value="{{ metodo.idMetodoPago }}">{{ metodo.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Total y botón -->
+  <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-6 mt-6">
+    <p class="text-lg font-semibold text-gray-800">
+      Total a pagar:
+      <span class="text-cyan-700 font-bold text-xl ml-2">${{ total|floatformat:0 }}</span>
+    </p>
+
+    <button id="btnPagar" type="submit"
+      class="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 shadow-md">
+      <i class="pe-7s-credit text-xl"></i>
+      <span>Pagar ahora</span>
+    </button>
+  </div>
+</form>
+
+  </div>
+</div>
+
+<!-- Overlay de carga -->
+
+<div id="loaderOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50">
+  <div class="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+  <p class="text-white text-lg font-semibold tracking-wide">Procesando tu pago...</p>
+</div>
+
+<script>
+  const btnPagar = document.getElementById('btnPagar');
+  const loaderOverlay = document.getElementById('loaderOverlay');
+
+  btnPagar.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    loaderOverlay.classList.remove('hidden');
+
+    // Simula la espera de la pasarela
+    setTimeout(() => {
+      btnPagar.closest('form').submit();
+    }, 2500);
+  });
+</script>
+
 {% endblock %}
