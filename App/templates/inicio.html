@@ -1,35 +1,304 @@
-{% extends 'base.html'%}
+{% extends 'base.html' %}
 {% load static %}
-
 {% block content %}
 
-<div class="container mx-auto py-12 px-6">
-    <!-- Título principal -->
-    <div class="text-center mb-12">
-        <h1 class="text-4xl font-bold text-cyan-700">SenaSoft</h1>
-        <p class="mt-2 text-gray-500 text-lg">Lorem ipsum dolor sit amet consectetur adipisicing elit. Officiis ratione possimus quam fugit esse in ipsa, quis dolorum minus! Repellat.</p>
+<div class="min-h-screen bg-gray-100 py-12 px-6">
+
+  <!-- Tarjeta de Filtros (igual que antes) -->
+  <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-3xl p-8 mb-10">
+    <h2 class="text-3xl font-bold text-cyan-700 mb-8 text-center">Buscar Vuelos</h2>
+
+    <form method="get" class="grid md:grid-cols-3 gap-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Viaje</label>
+        <select name="tipo_viaje" id="tipo_viaje" class="w-full border-gray-300 rounded-lg p-2.5">
+          <option value="ida" {% if request.GET.tipo_viaje == 'ida' %}selected{% endif %}>Solo Ida</option>
+          <option value="ida_vuelta" {% if request.GET.tipo_viaje == 'ida_vuelta' %}selected{% endif %}>Ida y Vuelta</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Origen</label>
+        <select name="origen" class="w-full border-gray-300 rounded-lg p-2.5">
+          <option value="">Seleccione</option>
+          {% for aeropuerto in aeropuertos %}
+            <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.origen == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
+              {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Destino</label>
+        <select name="destino" class="w-full border-gray-300 rounded-lg p-2.5">
+          <option value="">Seleccione</option>
+          {% for aeropuerto in aeropuertos %}
+            <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.destino == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
+              {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Salida</label>
+        <input type="date" name="fecha_salida" id="fecha_salida" value="{{ request.GET.fecha_salida }}" class="w-full border-gray-300 rounded-lg p-2.5">
+      </div>
+
+      <div id="campo_regreso" {% if request.GET.tipo_viaje != 'ida_vuelta' %}class="hidden"{% endif %}>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Regreso</label>
+        <input type="date" name="fecha_regreso" id="fecha_regreso" value="{{ request.GET.fecha_regreso }}" class="w-full border-gray-300 rounded-lg p-2.5">
+      </div>
+
+      <div class="flex items-end">
+        <button type="submit" class="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all">
+          Buscar Vuelos
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- FORMULARIO para enviar las selecciones (POST) -->
+  <form method="post" action="{% url 'seleccionar_vuelos' %}" id="form_reservar">
+    {% csrf_token %}
+
+    <!-- Resultados de Vuelos de Ida -->
+    {% if vuelos_ida %}
+      <h3 class="text-2xl font-semibold text-cyan-700 mb-4 text-center">Vuelos de Ida</h3>
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {% for vuelo in vuelos_ida %}
+          <label class="bg-white shadow-xl rounded-2xl p-6 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition">
+            <div>
+              <h3 class="text-xl font-semibold text-cyan-700 mb-3">
+                {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }} → {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}
+              </h3>
+              <p class="text-gray-700"><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d M Y H:i" }}</p>
+              <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y H:i" }}</p>
+              <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.matricula }}</p>
+            </div>
+
+            <div class="mt-4 flex items-center justify-between">
+              <span class="text-sm text-gray-600">Seleccionar como ida</span>
+
+              <!-- Checkbox oculto visualmente pero accesible -->
+              <input type="checkbox" name="selected_vuelos" value="{{ vuelo.idVuelo }}" 
+                     data-tipo="ida" class="select-vuelo hidden">
+              <!-- Check visual -->
+              <div class="w-9 h-9 border-2 border-gray-200 rounded-full flex items-center justify-center select-indicator">
+                <!-- Icono check (se mostrará con JS) -->
+              </div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Resultados de Vuelos de Regreso -->
+    {% if vuelos_vuelta %}
+      <h3 class="text-2xl font-semibold text-cyan-700 mb-4 text-center">Vuelos de Regreso</h3>
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {% for vuelo in vuelos_vuelta %}
+          <label class="bg-white shadow-xl rounded-2xl p-6 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition">
+            <div>
+              <h3 class="text-xl font-semibold text-cyan-700 mb-3">
+                {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }} → {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}
+              </h3>
+              <p class="text-gray-700"><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d M Y H:i" }}</p>
+              <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y H:i" }}</p>
+              <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.matricula }}</p>
+            </div>
+
+            <div class="mt-4 flex items-center justify-between">
+              <span class="text-sm text-gray-600">Seleccionar como regreso</span>
+
+              <input type="checkbox" name="selected_vuelos" value="{{ vuelo.idVuelo }}" 
+                     data-tipo="regreso" class="select-vuelo hidden">
+              <div class="w-9 h-9 border-2 border-gray-200 rounded-full flex items-center justify-center select-indicator">
+                <!-- Icono check -->
+              </div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Resumen / Botón confirmar -->
+    <div class="max-w-3xl mx-auto text-center mt-6">
+      <div id="resumenSeleccion" class="bg-white rounded-xl shadow-md p-4 mb-4 hidden">
+        <p class="text-gray-700" id="textoResumen">Has seleccionado: <span id="contadorSeleccion">0</span> vuelos.</p>
+        <p class="text-sm text-gray-500" id="detalleResumen"></p>
+      </div>
+
+      <button type="submit" id="btnConfirmar" class="bg-cyan-700 hover:bg-cyan-800 text-white py-3 px-8 rounded-xl font-semibold shadow-lg transition hidden">
+        Confirmar Reserva(s)
+      </button>
     </div>
 
-    <!-- Tarjetas -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
-     
-        <div class="bg-white rounded-lg shadow-md hover:shadow-xl transform hover:-translate-y-3 transition duration-300 ease-in-out p-6 text-center">
-            <i class="pe-7s-mail-open-file text-cyan-700 text-5xl mb-4"></i>
-            <h2 class="text-xl font-bold text-cyan-700 mb-2">-</h2>
-            <p class="text-gray-500 mb-6">-</p>
-            <a href="/envioComprobantes/"><button class="bg-cyan-700 hover:bg-cyan-600 text-white font-semibold rounded-lg px-4 py-2 transition duration-300 ease-in-out">-</button></a>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-md hover:shadow-xl transform hover:-translate-y-3 transition duration-300 ease-in-out p-6 text-center">
-            <i class="pe-7s-graph1 text-cyan-700 text-5xl mb-4"></i>
-            <h2 class="text-xl font-bold text-cyan-700 mb-2">-</h2>
-            <p class="text-gray-500 mb-6">-</p>
-            <a href="/historialEnvios/"><button class="bg-cyan-700 hover:bg-cyan-600 text-white font-semibold rounded-lg px-4 py-2 transition duration-300 ease-in-out">-</button></a>
-            
-        </div>
-    </div>
+  </form>
 </div>
 
+<!-- SCRIPT para comportamiento de selección -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const checkboxes = Array.from(document.querySelectorAll('.select-vuelo'));
+    const indicators = Array.from(document.querySelectorAll('.select-indicator'));
+    const btnConfirmar = document.getElementById('btnConfirmar');
+    const resumen = document.getElementById('resumenSeleccion');
+    const contador = document.getElementById('contadorSeleccion');
+    const detalle = document.getElementById('detalleResumen');
 
-{% endblock %}   
-    
+    // Mapa para controlar 1 seleccionado por tipo
+    const seleccionadoPorTipo = {
+      'ida': null,
+      'regreso': null
+    };
+
+    // Vincular cada label clickable: cuando label sea clickeado, togglear el checkbox (por accesibilidad)
+    // ya que checkbox está hidden, manejamos clicks en label.
+    document.querySelectorAll('label').forEach(label => {
+      label.addEventListener('click', function (e) {
+        // Evitar que al clickear dentro del label (por ejemplo en botones) se propague mal;
+        // pero permitimos el toggle si target no es link o input
+        if (e.target.tagName.toLowerCase() === 'a' || e.target.tagName.toLowerCase() === 'button') {
+          return;
+        }
+        const checkbox = this.querySelector('.select-vuelo');
+        if (!checkbox) return;
+
+        const tipo = checkbox.dataset.tipo; // 'ida' o 'regreso'
+
+        // Si actualmente hay otro seleccionado del mismo tipo, desmarcarlo
+        if (!checkbox.checked) {
+          // estamos a punto de marcar este
+          if (seleccionadoPorTipo[tipo] && seleccionadoPorTipo[tipo] !== checkbox) {
+            // desmarcar previo
+            seleccionadoPorTipo[tipo].checked = false;
+            // actualizar indicador visual del anterior
+            const prevIndicator = seleccionadoPorTipo[tipo].closest('label').querySelector('.select-indicator');
+            if (prevIndicator) prevIndicator.innerHTML = '';
+          }
+          checkbox.checked = true;
+          seleccionadoPorTipo[tipo] = checkbox;
+        } else {
+          // desmarcar el mismo
+          checkbox.checked = false;
+          seleccionadoPorTipo[tipo] = null;
+        }
+
+        // Actualizar indicadores visuales
+        updateIndicators();
+        updateResumen();
+      });
+    });
+
+    function updateIndicators() {
+      // Limpiar todos
+      indicators.forEach(ind => ind.innerHTML = '');
+      // Poner check en seleccionados
+      Object.values(seleccionadoPorTipo).forEach(cb => {
+        if (cb) {
+          const ind = cb.closest('label').querySelector('.select-indicator');
+          if (ind) ind.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clip-rule="evenodd" />
+            </svg>
+          `;
+          // Cambiar fondo borde para mostrar estado
+          ind.style.backgroundColor = '#0ea5a4'; // cyan-500-ish
+          ind.style.borderColor = '#0ea5a4';
+        }
+      });
+
+      // Reset visual for non-selected
+      indicators.forEach(ind => {
+        if (ind.innerHTML === '') {
+          ind.style.backgroundColor = 'transparent';
+          ind.style.borderColor = '#e5e7eb';
+        }
+      });
+    }
+
+    function updateResumen() {
+      const seleccionados = Object.values(seleccionadoPorTipo).filter(Boolean);
+      const total = seleccionados.length;
+      if (total > 0) {
+        btnConfirmar.classList.remove('hidden');
+        resumen.classList.remove('hidden');
+        contador.textContent = total;
+        // detalle: listar ids y tipos
+        const detalles = seleccionados.map(cb => {
+          const tipo = cb.dataset.tipo;
+          const label = cb.closest('label');
+          const origen = label.querySelector('h3')?.textContent?.trim() || '';
+          const salida = label.querySelector('p')?.textContent?.trim() || '';
+          return `${tipo.toUpperCase()}: ${origen} · ${salida}`;
+        }).join(' / ');
+        detalle.textContent = detalles;
+      } else {
+        btnConfirmar.classList.add('hidden');
+        resumen.classList.add('hidden');
+        contador.textContent = 0;
+        detalle.textContent = '';
+      }
+    }
+
+    // Prevenir envío si no hay seleccionados
+    document.getElementById('form_reservar').addEventListener('submit', function(e) {
+      const seleccionados = Object.values(seleccionadoPorTipo).filter(Boolean);
+      if (seleccionados.length === 0) {
+        e.preventDefault();
+        alert('Selecciona al menos un vuelo (ida o regreso) antes de confirmar.');
+        return false;
+      }
+
+      // Antes de enviar, asegurarnos que solo haya inputs checked correspondientes
+      // (ya lo están). Nada más.
+    });
+
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const tipoViajeSelect = document.getElementById('tipo_viaje');
+    const campoRegreso = document.getElementById('campo_regreso');
+    const fechaSalida = document.getElementById('fecha_salida');
+    const fechaRegreso = document.getElementById('fecha_regreso');
+
+    // Mostrar u ocultar campo de regreso al cargar
+    toggleCampoRegreso();
+
+    // Escuchar cambios en tipo de viaje
+    tipoViajeSelect.addEventListener('change', toggleCampoRegreso);
+
+    function toggleCampoRegreso() {
+      if (tipoViajeSelect.value === 'ida_vuelta') {
+        campoRegreso.classList.remove('hidden');
+        fechaRegreso.required = true;
+      } else {
+        campoRegreso.classList.add('hidden');
+        fechaRegreso.required = false;
+        fechaRegreso.value = '';
+      }
+    }
+
+    // Lógica de fechas — limitar máximo 2 meses hacia adelante
+    const hoy = new Date();
+    const maxFecha = new Date();
+    maxFecha.setMonth(hoy.getMonth() + 2);
+
+    const formato = d => d.toISOString().split('T')[0];
+    fechaSalida.min = formato(hoy);
+    fechaSalida.max = formato(maxFecha);
+    fechaRegreso.min = formato(hoy);
+    fechaRegreso.max = formato(maxFecha);
+
+    /* --- resto del script existente (selección de vuelos, indicadores, resumen, etc.) --- */
+  });
+</script>
+
+<style>
+  /* Mantener indicadores limpios */
+  .select-indicator svg { display: block; }
+</style>
+
+{% endblock %}

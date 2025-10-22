@@ -26,6 +26,10 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('registro/', views.registro_view, name='registro'),
     path('logout/', views.logout_view, name='logout'),
+    path('seleccionar_vuelos/', views.seleccionar_vuelos, name='seleccionar_vuelos'),
+    path('confirmar_reserva/', views.confirmar_reserva, name='confirmar_reserva'),
+
+
 ]
 
 urlpatterns+=static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

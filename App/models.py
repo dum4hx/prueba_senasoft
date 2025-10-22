@@ -152,6 +152,7 @@ class Vuelos(models.Model):
     fk_aeropuerto_llegada = models.ForeignKey(Aeropuertos, on_delete=models.CASCADE, related_name='aeropuerto_llegada')
     fecha_hora_salida = models.DateTimeField()
     fecha_hora_llegada = models.DateTimeField()
+    precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateField(auto_now_add=True)
     fecha_actualizacion = models.DateField(auto_now=True)
