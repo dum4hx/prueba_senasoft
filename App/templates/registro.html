@@ -1,0 +1,111 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Usuario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center">
+
+    <div class="w-full max-w-xl bg-white rounded-2xl shadow-2xl p-6 mt-2">
+        <div class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-cyan-700">Registrate</h1>
+            <p class="text-gray-500 text-sm mt-2">Completa la información para registrarte</p>
+        </div>
+
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="p-3 rounded-md text-sm 
+                {% if message.tags == 'error' %} bg-red-100 text-red-700
+                {% elif message.tags == 'success' %} bg-green-100 text-green-700
+                {% else %} bg-gray-100 text-gray-700 {% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre</label>
+                <input type="text" name="nombre" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Primer Apellido</label>
+                <input type="text" name="primer_apellido" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Segundo Apellido</label>
+                <input type="text" name="segundo_apellido" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de Nacimiento</label>
+                <input type="date" name="fecha_nacimiento" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Género</label>
+                <select name="genero" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none">
+                    <option value="">Selecciona</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Identificación</label>
+                <select name="tipo_identificacion" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none" required>
+                    <option value="">Selecciona</option>
+                    {% for tipo in tipos_identificacion %}
+                    <option value="{{ tipo.idTipoIdentificacion }}">{{ tipo.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Número de Identificación</label>
+                <input type="text" name="numero_identificacion" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Celular</label>
+                <input type="text" name="celular" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none">
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Correo Electrónico</label>
+                <input type="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none" required>
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Contraseña</label>
+                <input type="password" name="contraseña" placeholder="Crea una contraseña segura" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:outline-none" required>
+            </div>
+
+            <div class="md:col-span-2">
+                <button type="submit" class="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-semibold py-2 rounded-lg transition-all duration-200">
+                    Registrarme
+                </button>
+            </div>
+        </form>
+
+        <div class="text-center mt-6">
+            <p class="text-sm text-gray-500">
+                ¿Ya tienes una cuenta?
+                <a href="{% url 'login' %}" class="text-cyan-700 font-semibold hover:underline">
+                    Inicia sesión aquí
+                </a>
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+{% extends 'base.html'%}
+{% load static %}
+
+{% block content %}
+
+<div class="container mx-auto py-12 px-6">
+    <!-- Título principal -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-cyan-700">SenaSoft</h1>
+        <p class="mt-2 text-gray-500 text-lg">Lorem ipsum dolor sit amet consectetur adipisicing elit. Officiis ratione possimus quam fugit esse in ipsa, quis dolorum minus! Repellat.</p>
+    </div>
+
+    <!-- Tarjetas -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
+     
+        <div class="bg-white rounded-lg shadow-md hover:shadow-xl transform hover:-translate-y-3 transition duration-300 ease-in-out p-6 text-center">
+            <i class="pe-7s-mail-open-file text-cyan-700 text-5xl mb-4"></i>
+            <h2 class="text-xl font-bold text-cyan-700 mb-2">-</h2>
+            <p class="text-gray-500 mb-6">-</p>
+            <a href="/envioComprobantes/"><button class="bg-cyan-700 hover:bg-cyan-600 text-white font-semibold rounded-lg px-4 py-2 transition duration-300 ease-in-out">-</button></a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md hover:shadow-xl transform hover:-translate-y-3 transition duration-300 ease-in-out p-6 text-center">
+            <i class="pe-7s-graph1 text-cyan-700 text-5xl mb-4"></i>
+            <h2 class="text-xl font-bold text-cyan-700 mb-2">-</h2>
+            <p class="text-gray-500 mb-6">-</p>
+            <a href="/historialEnvios/"><button class="bg-cyan-700 hover:bg-cyan-600 text-white font-semibold rounded-lg px-4 py-2 transition duration-300 ease-in-out">-</button></a>
+            
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}   
+    

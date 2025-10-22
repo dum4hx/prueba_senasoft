@@ -1,0 +1,94 @@
+# ---- Python / Django ----
+# Archivos compilados / caché
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Cachés y caches de herramientas de análisis/lint/typecheck
+.pytest_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Entornos virtuales (el tuyo se llama "venv" en la captura)
+/venv/
+/.venv/
+/env/
+/ENV/
+
+# Ignorar bases de datos locales y archivos de logs
+*.sqlite3
+*.sqlite3-journal
+*.log
+
+# Archivos con configuración local / secretos
+local_settings.py
+.env
+.env.*
+secrets/
+.envrc
+
+# Archivos estáticos generados / collectstatic
+/staticfiles/
+/staticfiles/
+/static_collected/
+/public/static/
+
+# Media uploads (no subir archivos de usuario)
+media/
+*/media/
+
+# ---- Node / Tailwind / frontend ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log
+# Si usas lockfiles y quieres ignorarlos, descomentar:
+# package-lock.json
+# yarn.lock
+
+# cache de build de herramientas JS
+.dist/
+.cache/
+.next/
+.nuxt/
+.vite/
+.esbuild/
+
+# ---- Packaging / build ----
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+wheelhouse/
+
+# ---- IDE / editor ----
+# VSCode
+.vscode/
+.vsls/                 # Live Share artifacts (si los genera)
+# JetBrains / PyCharm
+.idea/
+*.iml
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Testing / coverage / reports ----
+.coverage
+htmlcov/
+.coverage.*
+.nosetests.xml
+coverage.xml
+pytestdebug.log
+
+# ---- Misc ----
+*.swp
+*~ 
+*.bak
+*.tmp
+
+# Añade aquí excepciones o entradas específicas si decides versionar algo en particular.
