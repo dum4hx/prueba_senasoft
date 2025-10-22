@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Usuarios, TipoIdentificacion, Aeropuertos, Vuelos, Reservas
+from .models import Usuarios, TipoIdentificacion, Aeropuertos, Vuelos, Reservas, MetodosPago, Pagos, Tiquetes
 from .forms import FormUsuarios
 from django.contrib import messages
 from django.shortcuts import render, redirect
@@ -11,6 +11,10 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta, date
 from django.views.decorators.http import require_POST
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+import uuid
 
 def login_view(request):
     if request.method == 'POST':
@@ -213,6 +217,155 @@ def confirmar_reserva(request):
         messages.warning(request, "Algunas reservas no se pudieron crear:\n" + "\n".join(errores))
 
     return redirect('/')
+
+@login_required
+def mis_reservas(request):
+    try:
+        usuario = Usuarios.objects.get(user=request.user)
+    except Usuarios.DoesNotExist:
+        messages.error(request, "Tu cuenta no está asociada a un perfil de usuario.")
+        return redirect('inicio')
+
+    # 🔹 Mostrar solo reservas activas (no pagadas)
+    reservas = Reservas.objects.filter(fk_usuario=usuario, activo=True)
+    return render(request, 'mis_reservas.html', {'reservas': reservas})
+
+
+
+@require_POST
+@login_required
+def procesar_pago(request):
+    selected = request.POST.getlist('reservas_seleccionadas')
+    if not selected:
+        messages.error(request, "No seleccionaste ninguna reserva para pagar.")
+        return redirect('mis_reservas')
+
+    usuario = get_object_or_404(Usuarios, user=request.user)
+    reservas = Reservas.objects.filter(idReserva__in=selected, fk_usuario=usuario, activo=True)
+
+    total = 0
+    for reserva in reservas:
+        total += reserva.fk_vuelo.precio  # Asumiendo que el modelo Vuelo tiene 'precio'
+
+    metodos = MetodosPago.objects.filter(activo=True)
+
+    context = {
+        'reservas': reservas,
+        'total': total,
+        'metodos': metodos
+    }
+    return render(request, 'procesar_pago.html', context)
+
+
+@require_POST
+@login_required
+def confirmar_pago(request):
+    metodo_id = request.POST.get('metodo_pago')
+    selected = request.POST.getlist('reservas_confirmadas')
+
+    if not metodo_id or not selected:
+        messages.error(request, "Debes seleccionar un método de pago y al menos una reserva.")
+        return redirect('mis_reservas')
+
+    usuario = get_object_or_404(Usuarios, user=request.user)
+    metodo = get_object_or_404(MetodosPago, idMetodoPago=metodo_id)
+    reservas = Reservas.objects.filter(idReserva__in=selected, fk_usuario=usuario, activo=True)
+
+    total_pagado = 0
+    tiquetes_creados = 0
+
+    for reserva in reservas:
+        monto = reserva.fk_vuelo.precio  # asumiendo que el vuelo tiene un campo 'precio'
+
+        # ✅ Crear el registro del pago
+        pago = Pagos.objects.create(
+            fk_metodo_pago=metodo,
+            fk_reserva=reserva,
+            monto=monto,
+            pagado=True
+        )
+
+        # ✅ Generar código único para el tiquete
+        codigo_tiquete = f"TKT-{uuid.uuid4().hex[:8].upper()}"
+
+        # ✅ Crear el tiquete asociado
+        Tiquetes.objects.create(
+            fk_pago=pago,
+            codigo=codigo_tiquete
+        )
+
+        # ✅ Marcar la reserva como inactiva (ya pagada)
+        reserva.activo = False
+        reserva.save()
+
+        total_pagado += float(monto)
+        tiquetes_creados += 1
+
+    messages.success(
+        request,
+        f"Pago realizado exitosamente por {len(reservas)} reserva(s). "
+        f"Se generaron {tiquetes_creados} tiquete(s). Total pagado: ${total_pagado:,.0f}"
+    )
+    return redirect('mis_vuelos')
+@login_required
+def mis_vuelos(request):
+    usuario = Usuarios.objects.get(user=request.user)
+    pagos = Pagos.objects.filter(
+        fk_reserva__fk_usuario=usuario,
+        pagado=True
+    ).select_related(
+        'fk_reserva__fk_vuelo',
+        'fk_metodo_pago'
+    ).order_by('-fecha_pago')
+
+    context = {'pagos': pagos}
+    
+    return render(request, 'mis_vuelos.html', context)
+
+@login_required
+def descargar_tiquete_pdf(request, id_pago):
+    pago = get_object_or_404(Pagos, idPago=id_pago, pagado=True)
+    reserva = pago.fk_reserva
+    vuelo = reserva.fk_vuelo
+    tiquete = Tiquetes.objects.filter(fk_pago=pago).first()
+
+    # Crear respuesta tipo PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Tiquete_{pago.idPago}.pdf"'
+
+    # Crear PDF
+    p = canvas.Canvas(response, pagesize=letter)
+    width, height = letter
+
+    # Encabezado
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(200, 750, "Tiquete de Vuelo")
+
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 720, f"Código Tiquete: {tiquete.codigo if tiquete else 'No generado'}")
+    p.drawString(50, 700, f"Reserva ID: {reserva.idReserva}")
+    p.drawString(50, 680, f"Usuario: {reserva.fk_usuario.nombre}")
+    p.drawString(50, 660, f"Vuelo: {vuelo.idVuelo}")
+    p.drawString(50, 640, f"Origen: {vuelo.fk_aeropuerto_salida}")
+    p.drawString(50, 620, f"Destino: {vuelo.fk_aeropuerto_llegada}")
+    p.drawString(50, 600, f"Fecha: {vuelo.fecha_hora_salida}")
+    p.drawString(50, 580, f"Hora: {vuelo.fecha_hora_llegada}")
+    p.drawString(50, 560, f"Asiento: {reserva.asiento}")
+    p.drawString(50, 540, f"Método de Pago: {pago.fk_metodo_pago.nombre}")
+    p.drawString(50, 520, f"Monto: ${pago.monto}")
+    p.drawString(50, 500, f"Fecha de Pago: {pago.fecha_pago}")
+
+    p.line(50, 490, 550, 490)
+    p.setFont("Helvetica-Oblique", 10)
+    p.drawString(50, 470, "Gracias por viajar con nosotros. ¡Feliz vuelo!")
+
+    p.showPage()
+    p.save()
+
+    return response
+
+
+
 
 
 

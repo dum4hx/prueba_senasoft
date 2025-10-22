@@ -28,6 +28,12 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('seleccionar_vuelos/', views.seleccionar_vuelos, name='seleccionar_vuelos'),
     path('confirmar_reserva/', views.confirmar_reserva, name='confirmar_reserva'),
+    path('mis-reservas/', views.mis_reservas, name='mis_reservas'),
+    path('procesar-pago/', views.procesar_pago, name='procesar_pago'),
+    path('confirmar-pago/', views.confirmar_pago, name='confirmar_pago'),
+    path('mis_vuelos/', views.mis_vuelos, name='mis_vuelos'),
+    path('mis_vuelos/descargar/<int:id_pago>/', views.descargar_tiquete_pdf, name='descargar_tiquete_pdf'),
+
 
 
 ]

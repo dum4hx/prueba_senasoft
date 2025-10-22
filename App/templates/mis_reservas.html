@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-5xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-lg">
+  <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">🎟️ Mis Reservas</h2>
+
+  <form action="{% url 'procesar_pago' %}" method="POST">
+    {% csrf_token %}
+    <div class="grid gap-4">
+      {% for reserva in reservas %}
+      <div class="flex justify-between items-center p-4 border rounded-xl shadow-sm bg-gray-50 hover:bg-gray-100 transition">
+        <div>
+          <p class="font-semibold text-gray-800">Vuelo: {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} → {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }}</p>
+          <p class="text-sm text-gray-500">Asiento: {{ reserva.asiento|default:"No asignado" }}</p>
+          <p class="text-sm text-gray-500">Fecha: {{ reserva.fk_vuelo.fecha_hora_salida|date:"d/m/Y H:i" }}</p>
+          <p class="text-cyan-700 font-semibold">💰 ${{ reserva.fk_vuelo.precio|floatformat:0 }}</p>
+        </div>
+        <div>
+          <input type="checkbox" name="reservas_seleccionadas" value="{{ reserva.idReserva }}"
+                 class="w-5 h-5 text-cyan-600 focus:ring-cyan-500 rounded">
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-center text-gray-600">No tienes reservas activas.</p>
+      {% endfor %}
+    </div>
+
+    <div class="flex justify-center mt-6">
+      <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition">
+        💳 Pagar Seleccionadas
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
