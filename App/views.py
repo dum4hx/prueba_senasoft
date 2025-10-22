@@ -322,6 +322,16 @@ def mis_vuelos(request):
     
     return render(request, 'mis_vuelos.html', context)
 
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.units import inch
+from django.contrib.auth.decorators import login_required
+from .models import Pagos, Tiquetes
+
 @login_required
 def descargar_tiquete_pdf(request, id_pago):
     pago = get_object_or_404(Pagos, idPago=id_pago, pagado=True)
@@ -329,40 +339,81 @@ def descargar_tiquete_pdf(request, id_pago):
     vuelo = reserva.fk_vuelo
     tiquete = Tiquetes.objects.filter(fk_pago=pago).first()
 
+
     # Crear respuesta tipo PDF
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="Tiquete_{pago.idPago}.pdf"'
 
-    # Crear PDF
-    p = canvas.Canvas(response, pagesize=letter)
-    width, height = letter
+    # Documento PDF
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=60, bottomMargin=40)
+    elements = []
 
-    # Encabezado
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(200, 750, "Tiquete de Vuelo")
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        name='Titulo',
+        parent=styles['Heading1'],
+        alignment=1,
+        fontSize=20,
+        textColor=colors.HexColor("#0891b2"),
+        spaceAfter=20
+    )
+    normal_style = ParagraphStyle(
+        name='Normal',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=colors.HexColor("#333333"),
+        spaceAfter=8
+    )
+    small_style = ParagraphStyle(
+        name='Small',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor("#666666"),
+        alignment=1
+    )
 
-    p.setFont("Helvetica", 12)
-    p.drawString(50, 720, f"Código Tiquete: {tiquete.codigo if tiquete else 'No generado'}")
-    p.drawString(50, 700, f"Reserva ID: {reserva.idReserva}")
-    p.drawString(50, 680, f"Usuario: {reserva.fk_usuario.nombre}")
-    p.drawString(50, 660, f"Vuelo: {vuelo.idVuelo}")
-    p.drawString(50, 640, f"Origen: {vuelo.fk_aeropuerto_salida}")
-    p.drawString(50, 620, f"Destino: {vuelo.fk_aeropuerto_llegada}")
-    p.drawString(50, 600, f"Fecha: {vuelo.fecha_hora_salida}")
-    p.drawString(50, 580, f"Hora: {vuelo.fecha_hora_llegada}")
-    p.drawString(50, 560, f"Asiento: {reserva.asiento}")
-    p.drawString(50, 540, f"Método de Pago: {pago.fk_metodo_pago.nombre}")
-    p.drawString(50, 520, f"Monto: ${pago.monto}")
-    p.drawString(50, 500, f"Fecha de Pago: {pago.fecha_pago}")
+    # Encabezado principal
+    elements.append(Paragraph("✈️ Tiquete de Vuelo", title_style))
+    elements.append(Paragraph(f"Código de Tiquete: <b>{tiquete.codigo if tiquete else 'No generado'}</b>", normal_style))
+    elements.append(Spacer(1, 12))
 
-    p.line(50, 490, 550, 490)
-    p.setFont("Helvetica-Oblique", 10)
-    p.drawString(50, 470, "Gracias por viajar con nosotros. ¡Feliz vuelo!")
+    # Tabla con datos del vuelo
+    data = [
+        ['Reserva ID', reserva.idReserva],
+        ['Usuario', reserva.fk_usuario.nombre],
+        ['Vuelo', vuelo.idVuelo],
+        ['Origen', str(vuelo.fk_aeropuerto_salida)],
+        ['Destino', str(vuelo.fk_aeropuerto_llegada)],
+        ['Fecha de Salida', vuelo.fecha_hora_salida.strftime("%Y-%m-%d %H:%M")],
+        ['Fecha de Llegada', vuelo.fecha_hora_llegada.strftime("%Y-%m-%d %H:%M")],
+        ['Asiento', reserva.asiento],
+        ['Método de Pago', pago.fk_metodo_pago.nombre],
+        ['Monto', f"${pago.monto:,.0f}"],
+        ['Fecha de Pago', pago.fecha_pago.strftime("%Y-%m-%d %H:%M")],
+    ]
 
-    p.showPage()
-    p.save()
+    table = Table(data, colWidths=[150, 330])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0891b2")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#0891b2")),
+        ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.HexColor("#a7f3d0")),
+    ]))
+    elements.append(table)
 
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph("Gracias por viajar con nosotros. ¡Feliz vuelo! 🛫", small_style))
+
+    # Construir PDF
+    doc.build(elements)
     return response
+
 
 
 

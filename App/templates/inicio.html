@@ -2,141 +2,155 @@
 {% load static %}
 {% block content %}
 
-<div class="min-h-screen bg-gray-100 py-12 px-6">
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-6">
 
-  <!-- Tarjeta de Filtros (igual que antes) -->
-  <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-3xl p-8 mb-10">
-    <h2 class="text-3xl font-bold text-cyan-700 mb-8 text-center">Buscar Vuelos</h2>
+  <!-- Tarjeta principal de filtros -->
+  <div class="max-w-6xl mx-auto bg-white/90 backdrop-blur-xl shadow-2xl rounded-3xl p-10 border border-cyan-100">
+    <h2 class="text-4xl font-extrabold text-center text-cyan-700 mb-10 tracking-tight">
+      <i class="pe-7s-plane text-4xl"></i> Buscar Vuelos
+    </h2>
 
-    <form method="get" class="grid md:grid-cols-3 gap-6">
+    <form method="get" class="grid md:grid-cols-3 gap-8">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Viaje</label>
-        <select name="tipo_viaje" id="tipo_viaje" class="w-full border-gray-300 rounded-lg p-2.5">
+        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Tipo de Viaje</label>
+        <select name="tipo_viaje" id="tipo_viaje"
+          class="w-full border border-cyan-200 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500 rounded-xl p-3 transition bg-white text-gray-700 font-medium">
           <option value="ida" {% if request.GET.tipo_viaje == 'ida' %}selected{% endif %}>Solo Ida</option>
           <option value="ida_vuelta" {% if request.GET.tipo_viaje == 'ida_vuelta' %}selected{% endif %}>Ida y Vuelta</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Origen</label>
-        <select name="origen" class="w-full border-gray-300 rounded-lg p-2.5">
+        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Origen</label>
+        <select name="origen"
+          class="w-full border border-cyan-200 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500 rounded-xl p-3 bg-white text-gray-700 font-medium">
           <option value="">Seleccione</option>
           {% for aeropuerto in aeropuertos %}
-            <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.origen == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
-              {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
-            </option>
+          <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.origen == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
+            {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
+          </option>
           {% endfor %}
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Destino</label>
-        <select name="destino" class="w-full border-gray-300 rounded-lg p-2.5">
+        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Destino</label>
+        <select name="destino"
+          class="w-full border border-cyan-200 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500 rounded-xl p-3 bg-white text-gray-700 font-medium">
           <option value="">Seleccione</option>
           {% for aeropuerto in aeropuertos %}
-            <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.destino == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
-              {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
-            </option>
+          <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.destino == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
+            {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
+          </option>
           {% endfor %}
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Salida</label>
-        <input type="date" name="fecha_salida" id="fecha_salida" value="{{ request.GET.fecha_salida }}" class="w-full border-gray-300 rounded-lg p-2.5">
+        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Fecha de Salida</label>
+        <input type="date" name="fecha_salida" id="fecha_salida" value="{{ request.GET.fecha_salida }}"
+          class="w-full border border-cyan-200 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500 rounded-xl p-3 bg-white text-gray-700 font-medium">
       </div>
 
       <div id="campo_regreso" {% if request.GET.tipo_viaje != 'ida_vuelta' %}class="hidden"{% endif %}>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Regreso</label>
-        <input type="date" name="fecha_regreso" id="fecha_regreso" value="{{ request.GET.fecha_regreso }}" class="w-full border-gray-300 rounded-lg p-2.5">
+        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Fecha de Regreso</label>
+        <input type="date" name="fecha_regreso" id="fecha_regreso" value="{{ request.GET.fecha_regreso }}"
+          class="w-full border border-cyan-200 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500 rounded-xl p-3 bg-white text-gray-700 font-medium">
       </div>
 
       <div class="flex items-end">
-        <button type="submit" class="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all">
-          Buscar Vuelos
+        <button type="submit"
+          class="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2">
+          <i class="pe-7s-plane text-xl"></i> Buscar Vuelos
         </button>
       </div>
     </form>
   </div>
 
-  <!-- FORMULARIO para enviar las selecciones (POST) -->
+  <!-- Resultados -->
   <form method="post" action="{% url 'seleccionar_vuelos' %}" id="form_reservar">
     {% csrf_token %}
 
-    <!-- Resultados de Vuelos de Ida -->
     {% if vuelos_ida %}
-      <h3 class="text-2xl font-semibold text-cyan-700 mb-4 text-center">Vuelos de Ida</h3>
-      <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {% for vuelo in vuelos_ida %}
-          <label class="bg-white shadow-xl rounded-2xl p-6 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition">
-            <div>
-              <h3 class="text-xl font-semibold text-cyan-700 mb-3">
-                {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }} → {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}
-              </h3>
-              <p class="text-gray-700"><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d M Y H:i" }}</p>
-              <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y H:i" }}</p>
-              <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.matricula }}</p>
-            </div>
+    <h3 class="text-2xl font-semibold text-cyan-700 mt-16 mb-6 text-center">Vuelos de Ida</h3>
+    <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {% for vuelo in vuelos_ida %}
+      <label
+        class="group bg-white shadow-xl rounded-3xl p-6 flex flex-col justify-between cursor-pointer hover:shadow-cyan-300 hover:border-cyan-400 border border-transparent transition-all duration-300 transform hover:-translate-y-1">
+        <div>
+          <h3 class="text-xl font-bold text-cyan-700 mb-3 flex items-center gap-2">
+            <i class="pe-7s-map-marker text-cyan-600 text-2xl"></i>
+            {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }} → {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}
+          </h3>
+          <p class="text-gray-700"><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d M Y - H:i" }}</p>
+          <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y - H:i" }}</p>
+          <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.fk_modelo_avion.nombre }}</p>
+          <p class="text-gray-700"><strong>Capacidad:</strong> {{ vuelo.fk_avion.fk_modelo_avion.capacidad_pasajeros }} Pasajeros</p>
+          <p class="text-gray-700"><strong>Precio:</strong> {{ vuelo.precio|floatformat:0 }} COP</p>
+        </div>
 
-            <div class="mt-4 flex items-center justify-between">
-              <span class="text-sm text-gray-600">Seleccionar como ida</span>
-
-              <!-- Checkbox oculto visualmente pero accesible -->
-              <input type="checkbox" name="selected_vuelos" value="{{ vuelo.idVuelo }}" 
-                     data-tipo="ida" class="select-vuelo hidden">
-              <!-- Check visual -->
-              <div class="w-9 h-9 border-2 border-gray-200 rounded-full flex items-center justify-center select-indicator">
-                <!-- Icono check (se mostrará con JS) -->
-              </div>
-            </div>
-          </label>
-        {% endfor %}
-      </div>
+        <div class="mt-4 flex items-center justify-between">
+          <span class="text-sm text-gray-600">Seleccionar como ida</span>
+          <input type="checkbox" name="selected_vuelos" value="{{ vuelo.idVuelo }}" data-tipo="ida"
+            class="select-vuelo hidden">
+          <div
+            class="w-9 h-9 border-2 border-cyan-300 rounded-full flex items-center justify-center select-indicator transition-all duration-300 group-hover:border-cyan-500">
+          </div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
     {% endif %}
 
-    <!-- Resultados de Vuelos de Regreso -->
     {% if vuelos_vuelta %}
-      <h3 class="text-2xl font-semibold text-cyan-700 mb-4 text-center">Vuelos de Regreso</h3>
-      <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {% for vuelo in vuelos_vuelta %}
-          <label class="bg-white shadow-xl rounded-2xl p-6 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition">
-            <div>
-              <h3 class="text-xl font-semibold text-cyan-700 mb-3">
-                {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }} → {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}
-              </h3>
-              <p class="text-gray-700"><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d M Y H:i" }}</p>
-              <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y H:i" }}</p>
-              <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.matricula }}</p>
-            </div>
+    <h3 class="text-2xl font-semibold text-cyan-700 mt-16 mb-6 text-center">Vuelos de Regreso</h3>
+    <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {% for vuelo in vuelos_vuelta %}
+      <label
+        class="group bg-white shadow-xl rounded-3xl p-6 flex flex-col justify-between cursor-pointer hover:shadow-cyan-300 hover:border-cyan-400 border border-transparent transition-all duration-300 transform hover:-translate-y-1">
+        <div>
+          <h3 class="text-xl font-bold text-cyan-700 mb-3 flex items-center gap-2">
+            <i class="pe-7s-map-marker text-cyan-600 text-2xl"></i>
+            {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }} → {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}
+          </h3>
+          <p class="text-gray-700"><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d M Y - H:i" }}</p>
+          <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y - H:i" }}</p>
+          <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.fk_modelo_avion.nombre }}</p>
+          <p class="text-gray-700"><strong>Capacidad:</strong> {{ vuelo.fk_avion.fk_modelo_avion.capacidad_pasajeros }} Pasajeros</p>
+          <p class="text-gray-700"><strong>Precio:</strong> {{ vuelo.precio|floatformat:0 }} COP</p>
+        </div>
 
-            <div class="mt-4 flex items-center justify-between">
-              <span class="text-sm text-gray-600">Seleccionar como regreso</span>
-
-              <input type="checkbox" name="selected_vuelos" value="{{ vuelo.idVuelo }}" 
-                     data-tipo="regreso" class="select-vuelo hidden">
-              <div class="w-9 h-9 border-2 border-gray-200 rounded-full flex items-center justify-center select-indicator">
-                <!-- Icono check -->
-              </div>
-            </div>
-          </label>
-        {% endfor %}
-      </div>
+        <div class="mt-4 flex items-center justify-between">
+          <span class="text-sm text-gray-600">Seleccionar como regreso</span>
+          <input type="checkbox" name="selected_vuelos" value="{{ vuelo.idVuelo }}" data-tipo="regreso"
+            class="select-vuelo hidden">
+          <div
+            class="w-9 h-9 border-2 border-cyan-300 rounded-full flex items-center justify-center select-indicator transition-all duration-300 group-hover:border-cyan-500">
+          </div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
     {% endif %}
 
-    <!-- Resumen / Botón confirmar -->
-    <div class="max-w-3xl mx-auto text-center mt-6">
-      <div id="resumenSeleccion" class="bg-white rounded-xl shadow-md p-4 mb-4 hidden">
-        <p class="text-gray-700" id="textoResumen">Has seleccionado: <span id="contadorSeleccion">0</span> vuelos.</p>
+    <!-- Resumen -->
+    <div class="max-w-3xl mx-auto text-center mt-10">
+      <div id="resumenSeleccion"
+        class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-md border border-cyan-100 p-5 mb-6 hidden">
+        <p class="text-gray-700 font-medium" id="textoResumen">
+          Has seleccionado: <span id="contadorSeleccion" class="font-bold text-cyan-700">0</span> vuelos.
+        </p>
         <p class="text-sm text-gray-500" id="detalleResumen"></p>
       </div>
 
-      <button type="submit" id="btnConfirmar" class="bg-cyan-700 hover:bg-cyan-800 text-white py-3 px-8 rounded-xl font-semibold shadow-lg transition hidden">
-        Confirmar Reserva(s)
+      <button type="submit" id="btnConfirmar"
+        class="bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white py-3 px-10 rounded-xl font-semibold shadow-lg transition hidden">
+        <i class="pe-7s-check text-xl mr-2"></i> Confirmar Reserva(s)
       </button>
     </div>
-
   </form>
 </div>
+
 
 <!-- SCRIPT para comportamiento de selección -->
 <script>
