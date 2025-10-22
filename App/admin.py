@@ -71,8 +71,8 @@ class AdminPagos(admin.ModelAdmin):
 admin.site.register(Pagos, AdminPagos)
 
 class AdminTiquetes(admin.ModelAdmin):
-    list_display = ('fk_pago', 'activo')
-    list_filter = ('fk_pago',)
+    list_display = ('codigo', 'activo')
+    list_filter = ('codigo',)
 
 admin.site.register(Tiquetes, AdminTiquetes)
 

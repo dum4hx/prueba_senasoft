@@ -5,7 +5,7 @@
   <div class="max-w-6xl mx-auto bg-white rounded-3xl shadow-2xl p-10">
     <div class="text-center mb-6">
       <i class="pe-7s-plane text-cyan-700 text-5xl mb-3"></i>
-      <h2 class="text-3xl font-bold text-cyan-700">Mis Vuelos Pagados</h2>
+      <h2 class="text-3xl font-bold text-cyan-700">Mis Vuelos</h2>
       <p class="text-gray-500 text-sm mt-2">Aquí puedes ver todos los vuelos que ya fueron pagados exitosamente</p>
     </div>
 {% if pagos %}
@@ -18,7 +18,7 @@
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-bold text-gray-800">
             <i class="pe-7s-plane text-cyan-600 mr-2"></i>
-            Vuelo {{ pago.fk_reserva.fk_vuelo.codigoVuelo }}
+            Tiquete {{ pago.fk_reserva.fk_vuelo.codigoVuelo }}
           </h3>
           <span class="text-green-600 font-semibold flex items-center gap-1">
             <i class="pe-7s-check text-lg"></i> Pagado
@@ -37,7 +37,7 @@
 
         {% if pago.tiquetes_set.exists %}
         <div class="border-t border-gray-200 pt-3 mt-3 text-sm text-gray-700">
-          <p><i class="pe-7s-ticket text-cyan-600 mr-2"></i><strong>Tiquete:</strong> {{ pago.tiquetes_set.first.codigo }}</p>
+          <p><i class="pe-7s-ticket text-cyan-600 mr-2"></i><strong>N°:</strong> {{ pago.tiquetes_set.first.codigo }}</p>
         </div>
         {% endif %}
 
@@ -52,9 +52,9 @@
     {% endfor %}
   </div>
 {% else %}
-  <div class="text-center py-16">
-    <i class="pe-7s-note2 text-gray-400 text-6xl mb-4"></i>
-    <p class="text-gray-500 text-lg">No tienes vuelos pagados aún.</p>
+  <div class="text-center py-16 bg-gray-50 rounded-2xl shadow-inner">
+      <i class="pe-7s-info text-cyan-600 text-5xl mb-3"></i>
+      <p class="text-gray-600 text-lg font-medium">No tienes vuelos activos.</p>
   </div>
 {% endif %}
 </div>

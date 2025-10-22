@@ -15,20 +15,29 @@ from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import uuid
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.units import inch
+from django.contrib.auth.decorators import login_required
+from django.db.models import F
 
 def login_view(request):
     if request.method == 'POST':
         identificador = request.POST.get('identificador')
         contraseña = request.POST.get('contraseña')
 
-        # 1️⃣ Intentar autenticación como ADMIN (usuario del sistema Django)
+        # Intentar autenticación como ADMIN (usuario del sistema Django)
         user = authenticate(request, username=identificador, password=contraseña)
 
         if user is not None:
             login(request, user)
             return redirect('/')  # Redirige a la vista principal o panel
 
-        # 2️⃣ Si no es admin, intentar autenticación como USUARIO del modelo Usuarios
+        # Si no es admin, intentar autenticación como USUARIO del modelo Usuarios
         try:
             usuario = Usuarios.objects.get(numero_identificacion=identificador, activo=True)
         except Usuarios.DoesNotExist:
@@ -120,7 +129,17 @@ def inicio(request):
         if fecha_salida:
             filtros_ida['fecha_hora_salida__date'] = fecha_salida
 
-        vuelos_ida = Vuelos.objects.filter(**filtros_ida, activo=True).order_by('fecha_hora_salida')
+        vuelos_ida_queryset = Vuelos.objects.filter(**filtros_ida, activo=True).order_by('fecha_hora_salida')
+        vuelos_ida = []
+        for vuelo in vuelos_ida_queryset:
+            # Contar reservas con tiquetes activos a través de pagos
+            reservas_activas = Reservas.objects.filter(
+                fk_vuelo=vuelo,
+                pagos__tiquetes__activo=True
+            ).distinct().count()
+            capacidad = vuelo.fk_avion.fk_modelo_avion.capacidad_pasajeros
+            vuelo.asientos_disponibles = max(capacidad - reservas_activas, 0)
+            vuelos_ida.append(vuelo)
 
         # --- VUELOS DE VUELTA (solo si aplica) ---
         if tipo_viaje == 'ida_vuelta' and fecha_regreso:
@@ -132,7 +151,16 @@ def inicio(request):
             if fecha_regreso:
                 filtros_vuelta['fecha_hora_salida__date'] = fecha_regreso
 
-            vuelos_vuelta = Vuelos.objects.filter(**filtros_vuelta, activo=True).order_by('fecha_hora_salida')
+            vuelos_vuelta_queryset = Vuelos.objects.filter(**filtros_vuelta, activo=True).order_by('fecha_hora_salida')
+            vuelos_vuelta = []
+            for vuelo in vuelos_vuelta_queryset:
+                reservas_activas = Reservas.objects.filter(
+                    fk_vuelo=vuelo,
+                    pagos__tiquetes__activo=True
+                ).distinct().count()
+                capacidad = vuelo.fk_avion.fk_modelo_avion.capacidad_pasajeros
+                vuelo.asientos_disponibles = max(capacidad - reservas_activas, 0)
+                vuelos_vuelta.append(vuelo)
 
     return render(request, 'inicio.html', {
         'aeropuertos': aeropuertos,
@@ -141,11 +169,14 @@ def inicio(request):
         'fecha_hoy': fecha_hoy,
         'fecha_max': fecha_max
     })
+
     
 @require_POST
 @login_required
 def seleccionar_vuelos(request):
     selected = request.POST.getlist('selected_vuelos')
+    num_pasajeros = int(request.POST.get('num_pasajeros', 1))
+
     if not selected:
         messages.error(request, "No seleccionaste ningún vuelo.")
         return redirect('buscar_vuelos')
@@ -155,7 +186,16 @@ def seleccionar_vuelos(request):
         messages.error(request, "No se encontraron los vuelos seleccionados.")
         return redirect('/')
 
-    return render(request, 'resumen_reserva.html', {'vuelos': vuelos})
+    pasajeros = range(1, num_pasajeros + 1)
+
+    return render(request, 'resumen_reserva.html', {
+        'vuelos': vuelos,
+        'num_pasajeros': num_pasajeros,
+        'pasajeros': pasajeros,
+    })
+
+
+
 
 @require_POST
 @login_required
@@ -166,57 +206,82 @@ def confirmar_reserva(request):
         messages.error(request, "No hay vuelos seleccionados para confirmar.")
         return redirect('/')
 
-    # Obtener usuario actual autenticado
-    try:
-        usuario = Usuarios.objects.get(user=request.user)
-    except Usuarios.DoesNotExist:
+    usuario = Usuarios.objects.filter(user=request.user).first()
+    if not usuario:
         messages.error(request, "Tu cuenta no está asociada a un perfil de usuario válido.")
         return redirect('/')
 
-    creadas = 0
-    errores = []
+    creadas, errores = 0, []
+    num_pasajeros = 0
+
+    # Detectar cuántos pasajeros se enviaron
+    for key in request.POST.keys():
+        if key.startswith("asiento_"):
+            try:
+                _, _, pasajero_id = key.split("_")
+                num_pasajeros = max(num_pasajeros, int(pasajero_id))
+            except ValueError:
+                pass
 
     for vuelo_id in selected_vuelos:
         vuelo = Vuelos.objects.filter(idVuelo=vuelo_id, activo=True).first()
         if not vuelo:
-            errores.append(f"El vuelo con ID {vuelo_id} no existe o no está activo.")
+            errores.append(f"El vuelo con ID {vuelo_id} no existe.")
             continue
 
-        # Obtener asiento desde el formulario
-        asiento = request.POST.get(f"asiento_{vuelo_id}", "").strip()
+        for pasajero in range(1, num_pasajeros + 1):
+            asiento = request.POST.get(f"asiento_{vuelo_id}_{pasajero}", "").strip()
+            if not asiento:
+                errores.append(f"Pasajero {pasajero} no seleccionó asiento en vuelo {vuelo_id}.")
+                continue
 
-        if not asiento:
-            errores.append(f"Debes seleccionar un asiento para el vuelo {vuelo_id}.")
-            continue
+            if Reservas.objects.filter(fk_vuelo=vuelo, asiento=asiento, activo=True).exists():
+                errores.append(f"Asiento {asiento} ocupado en vuelo {vuelo_id}.")
+                continue
 
-        # Verificar si el asiento ya está reservado por otro usuario
-        ocupado = Reservas.objects.filter(fk_vuelo=vuelo, asiento=asiento, activo=True).exists()
-        if ocupado:
-            errores.append(f"El asiento {asiento} ya está reservado en el vuelo {vuelo_id}.")
-            continue
+            Reservas.objects.create(
+                fk_vuelo=vuelo,
+                fk_usuario=usuario,
+                asiento=asiento,
+                activo=True
+            )
+            creadas += 1
 
-        # Verificar si el usuario ya tiene una reserva activa para ese vuelo
-        existe = Reservas.objects.filter(fk_vuelo=vuelo, fk_usuario=usuario, activo=True).exists()
-        if existe:
-            errores.append(f"Ya tienes una reserva activa para el vuelo {vuelo_id}.")
-            continue
-
-        # Crear la reserva
-        Reservas.objects.create(
-            fk_vuelo=vuelo,
-            fk_usuario=usuario,
-            asiento=asiento,
-            activo=True
-        )
-        creadas += 1
-
-    # Mensajes finales
     if creadas > 0:
         messages.success(request, f"Se crearon {creadas} reserva(s) correctamente.")
     if errores:
-        messages.warning(request, "Algunas reservas no se pudieron crear:\n" + "\n".join(errores))
+        messages.warning(request, "\n".join(errores))
 
-    return redirect('/')
+    return redirect('mis_reservas')
+
+@login_required
+@require_POST
+def eliminar_reserva(request, id_reserva):
+    try:
+        reserva = Reservas.objects.get(idReserva=id_reserva, fk_usuario__user=request.user)
+        reserva.delete()
+        messages.success(request, "Reserva eliminada correctamente.")
+    except Reservas.DoesNotExist:
+        messages.error(request, "No se encontró la reserva o no tienes permisos para eliminarla.")
+    return redirect('mis_reservas')
+
+
+@login_required
+def seleccionar_asientos(request):
+    vuelos = Vuelos.objects.filter(activo=True)
+
+    # Crear un diccionario: vuelo_id -> lista de asientos ocupados
+    asientos_ocupados = {}
+    for vuelo in vuelos:
+        ocupados = Reservas.objects.filter(fk_vuelo=vuelo, activo=True).values_list('asiento', flat=True)
+        asientos_ocupados[vuelo.idVuelo] = list(ocupados)
+
+    context = {
+        'vuelos': vuelos,
+        'asientos_ocupados': asientos_ocupados
+    }
+    return render(request, 'vuelos/seleccionar_asientos.html', context)
+
 
 @login_required
 def mis_reservas(request):
@@ -245,7 +310,7 @@ def procesar_pago(request):
 
     total = 0
     for reserva in reservas:
-        total += reserva.fk_vuelo.precio  # Asumiendo que el modelo Vuelo tiene 'precio'
+        total += reserva.fk_vuelo.precio 
 
     metodos = MetodosPago.objects.filter(activo=True)
 
@@ -275,9 +340,9 @@ def confirmar_pago(request):
     tiquetes_creados = 0
 
     for reserva in reservas:
-        monto = reserva.fk_vuelo.precio  # asumiendo que el vuelo tiene un campo 'precio'
+        monto = reserva.fk_vuelo.precio  
 
-        # ✅ Crear el registro del pago
+        #  Crear el registro del pago
         pago = Pagos.objects.create(
             fk_metodo_pago=metodo,
             fk_reserva=reserva,
@@ -285,16 +350,16 @@ def confirmar_pago(request):
             pagado=True
         )
 
-        # ✅ Generar código único para el tiquete
+        # Generar código único para el tiquete
         codigo_tiquete = f"TKT-{uuid.uuid4().hex[:8].upper()}"
 
-        # ✅ Crear el tiquete asociado
+        #  Crear el tiquete asociado
         Tiquetes.objects.create(
             fk_pago=pago,
             codigo=codigo_tiquete
         )
 
-        # ✅ Marcar la reserva como inactiva (ya pagada)
+        #  Marcar la reserva como inactiva (ya pagada)
         reserva.activo = False
         reserva.save()
 
@@ -322,15 +387,7 @@ def mis_vuelos(request):
     
     return render(request, 'mis_vuelos.html', context)
 
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.units import inch
-from django.contrib.auth.decorators import login_required
-from .models import Pagos, Tiquetes
+
 
 @login_required
 def descargar_tiquete_pdf(request, id_pago):
@@ -389,8 +446,7 @@ def descargar_tiquete_pdf(request, id_pago):
         ['Fecha de Llegada', vuelo.fecha_hora_llegada.strftime("%Y-%m-%d %H:%M")],
         ['Asiento', reserva.asiento],
         ['Método de Pago', pago.fk_metodo_pago.nombre],
-        ['Monto', f"${pago.monto:,.0f}"],
-        ['Fecha de Pago', pago.fecha_pago.strftime("%Y-%m-%d %H:%M")],
+        ['Monto', f"${pago.monto:,.0f}"]
     ]
 
     table = Table(data, colWidths=[150, 330])

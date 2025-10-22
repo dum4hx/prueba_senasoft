@@ -1,84 +1,117 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Importar iconos PE 7S -->
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pe7-icon/1.0.4/css/pe-icon-7-stroke.min.css" integrity="sha512-QO5WZUZnpZKHKQqTTnXnC9o8jD3tF5efpl1L+Cn+VDUI9e7BrzVByAV3EGHiy3rQ6nA6vgr29KHGRNcNRWBbhA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
 <div class="min-h-screen bg-gray-100 py-12 px-4 flex justify-center">
   <div class="w-full max-w-5xl bg-white shadow-2xl rounded-3xl p-10">
-<div class="text-center mb-10">
-  <div class="flex items-center justify-center mb-3">
-    <i class="pe-7s-ticket text-cyan-700 text-5xl"></i>
-  </div>
-  <h2 class="text-3xl font-bold text-cyan-700">Mis Reservas</h2>
-  <p class="text-gray-500 text-sm mt-2">Revisa tus vuelos, verifica los detalles y selecciona los que deseas pagar</p>
-</div>
 
-<form action="{% url 'procesar_pago' %}" method="POST" class="space-y-6">
-  {% csrf_token %}
-
-  {% if reservas %}
-    {% for reserva in reservas %}
-    <div class="relative border border-gray-200 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
-      <div class="absolute top-0 left-0 h-full w-2 bg-cyan-600"></div>
-      <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-        
-        <!-- Información del vuelo -->
-        <div class="flex-1 space-y-2">
-          <div class="flex items-center text-gray-800 font-semibold text-lg">
-            <i class="pe-7s-plane text-cyan-600 text-2xl mr-2"></i>
-            {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} 
-            <span class="mx-2 text-cyan-600">→</span>
-            {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }}
-          </div>
-          
-          <div class="flex items-center text-gray-600 text-sm">
-            <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
-            Asiento: <span class="ml-1 font-medium">{{ reserva.asiento|default:"No asignado" }}</span>
-          </div>
-
-          <div class="flex items-center text-gray-600 text-sm">
-            <i class="pe-7s-date text-cyan-600 mr-2"></i>
-            Fecha Salida: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_salida|date:"d/m/Y - H:i" }}</span>
-          </div>
-
-          <div class="flex items-center text-gray-600 text-sm">
-            <i class="pe-7s-date text-cyan-600 mr-2"></i>
-            Fecha Llegada: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_llegada|date:"d/m/Y - H:i" }}</span>
-          </div>
-
-          <div class="flex items-center text-cyan-700 font-bold text-lg">
-            <i class="pe-7s-cash text-cyan-600 mr-2"></i>
-            ${{ reserva.fk_vuelo.precio|floatformat:0 }}
-          </div>
-        </div>
-
-        <!-- Checkbox -->
-        <div>
-          <input type="checkbox" name="reservas_seleccionadas" value="{{ reserva.idReserva }}"
-                 class="w-6 h-6 text-cyan-700 border-gray-300 rounded focus:ring-2 focus:ring-cyan-600 cursor-pointer">
-        </div>
+    <!-- Encabezado -->
+    <div class="text-center mb-10">
+      <div class="flex items-center justify-center mb-3">
+        <i class="pe-7s-ticket text-cyan-700 text-5xl"></i>
       </div>
+      <h2 class="text-3xl font-bold text-cyan-700">Mis Reservas</h2>
+      <p class="text-gray-500 text-sm mt-2">Revisa tus vuelos, verifica los detalles y selecciona los que deseas pagar</p>
     </div>
-    {% endfor %}
-  {% else %}
-    <div class="text-center py-16 bg-gray-50 rounded-2xl shadow-inner">
-      <i class="pe-7s-info text-cyan-600 text-5xl mb-3"></i>
-      <p class="text-gray-600 text-lg font-medium">No tienes reservas activas.</p>
-    </div>
-  {% endif %}
 
-  {% if reservas %}
-  <div class="text-center pt-8">
-    <button type="submit" 
-      class="inline-flex items-center gap-2 bg-cyan-700 hover:bg-cyan-800 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition-all duration-300">
-      <i class="pe-7s-credit text-xl"></i>
-      Pagar Seleccionadas
-    </button>
+    {% if reservas %}
+      <form action="{% url 'procesar_pago' %}" method="POST" id="form-pago" class="space-y-6">
+        {% csrf_token %}
+        {% for reserva in reservas %}
+        <div class="relative border border-gray-200 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <div class="absolute top-0 left-0 h-full w-2 bg-cyan-600"></div>
+
+          <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4 relative">
+            
+            <!-- Botón eliminar fuera del form de pago -->
+            <button type="button"
+                    onclick="eliminarReserva('{{ reserva.idReserva }}')"
+                    class="absolute top-4 right-6 text-red-500 hover:text-red-700 transition duration-200"
+                    title="Eliminar reserva">
+              <i class="pe-7s-trash text-2xl"></i>
+            </button>
+
+            <!-- Información del vuelo -->
+            <div class="flex-1 space-y-2">
+              <div class="flex items-center text-gray-800 font-semibold text-lg">
+                <i class="pe-7s-plane text-cyan-600 text-2xl mr-2"></i>
+                {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} ({{ reserva.fk_vuelo.fk_aeropuerto_salida.codigo_iata }})
+                <span class="mx-2 text-cyan-600">→</span>
+                {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }} ({{ reserva.fk_vuelo.fk_aeropuerto_llegada.codigo_iata }})
+              </div>
+              
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+                Asiento: <span class="ml-1 font-medium">{{ reserva.asiento|default:"No asignado" }}</span>
+              </div>
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-date text-cyan-600 mr-2"></i>
+                Fecha Salida: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_salida|date:"d/m/Y - H:i" }}</span>
+              </div>
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-date text-cyan-600 mr-2"></i>
+                Fecha Llegada: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_llegada|date:"d/m/Y - H:i" }}</span>
+              </div>
+
+              <div class="flex items-center text-cyan-700 font-bold text-lg">
+                <i class="pe-7s-cash text-cyan-600 mr-2"></i>
+                ${{ reserva.fk_vuelo.precio|floatformat:0 }}
+              </div>
+
+              <div class="flex items-center text-cyan-700 font-bold text-lg">
+                <i class="pe-7s-user text-cyan-600 mr-2"></i>
+                ${{ reserva.fk_usuario.nombre }}
+              </div>
+            </div>
+
+            <!-- Checkbox -->
+            <div>
+              <input type="checkbox" name="reservas_seleccionadas" value="{{ reserva.idReserva }}"
+                     class="w-6 h-6 text-cyan-700 border-gray-300 rounded focus:ring-2 focus:ring-cyan-600 cursor-pointer">
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="text-center pt-8">
+          <button type="submit" 
+            class="inline-flex items-center gap-2 bg-cyan-700 hover:bg-cyan-800 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition-all duration-300">
+            <i class="pe-7s-credit text-xl"></i>
+            Pagar Seleccionadas
+          </button>
+        </div>
+      </form>
+    {% else %}
+      <div class="text-center py-16 bg-gray-50 rounded-2xl shadow-inner">
+        <i class="pe-7s-info text-cyan-600 text-5xl mb-3"></i>
+        <p class="text-gray-600 text-lg font-medium">No tienes reservas activas.</p>
+      </div>
+    {% endif %}
   </div>
-  {% endif %}
-</form>
 </div>
-</div>
+
+<!-- Script de eliminación -->
+<script>
+function eliminarReserva(idReserva) {
+  if (!confirm('¿Estás seguro de eliminar esta reserva?')) return;
+
+  fetch(`{% url 'eliminar_reserva' 0 %}`.replace('0', idReserva), {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+    },
+  })
+  .then(response => {
+    if (response.ok) {
+      // Recarga la página para reflejar el cambio
+      location.reload();
+    } else {
+      alert('Error al eliminar la reserva');
+    }
+  })
+  .catch(() => alert('Error al eliminar la reserva'));
+}
+</script>
+
 {% endblock %}
