@@ -32,7 +32,6 @@ SENA Booking es una plataforma web diseñada para facilitar la búsqueda y reser
 - Docker y Docker Compose
 - Git
 - Pip (Gestor de paquetes de Python)
-- Node.js y npm (para TailwindCSS)
 
 ### Pasos de Instalación
 

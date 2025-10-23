@@ -32,8 +32,8 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 text-gray-700 text-sm">
-                        <div><strong>Origen:</strong> {{ vuelo.fk_aeropuerto_salida.fk_ciudad.nombre }}</div>
-                        <div><strong>Destino:</strong> {{ vuelo.fk_aeropuerto_llegada.fk_ciudad.nombre }}</div>
+                        <div><strong>Origen:</strong> {{ vuelo.fk_aeropuerto_salida.nombre }} ({{ vuelo.fk_aeropuerto_salida.codigo_iata }})</div>
+                        <div><strong>Destino:</strong> {{ vuelo.fk_aeropuerto_llegada.nombre }} ({{ vuelo.fk_aeropuerto_llegada.codigo_iata }})</div>
                         <div><strong>Salida:</strong> {{ vuelo.fecha_hora_salida|date:"d/m/Y H:i" }}</div>
                         <div><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d/m/Y H:i" }}</div>
                     </div>

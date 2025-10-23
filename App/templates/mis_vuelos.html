@@ -6,7 +6,7 @@
     <div class="text-center mb-6">
       <i class="pe-7s-plane text-cyan-700 text-5xl mb-3"></i>
       <h2 class="text-3xl font-bold text-cyan-700">Mis Vuelos</h2>
-      <p class="text-gray-500 text-sm mt-2">Aquí puedes ver todos los vuelos que ya fueron pagados exitosamente</p>
+      <p class="text-gray-500 text-sm mt-2">Visualiza tus vuelos pagados y descarga tus tiquetes</p>
     </div>
 {% if pagos %}
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -26,6 +26,12 @@
         </div>
 
         <div class="text-sm text-gray-600 space-y-1">
+          <p><i class="pe-7s-user text-cyan-600 mr-2"></i><strong>Pasajero:</strong> {{ pago.fk_reserva.fk_pasajero.nombre }} {{ pago.fk_reserva.fk_pasajero.primer_apellido }} {{ pago.fk_reserva.fk_pasajero.segundo_apellido }}</p>
+          {% if pago.fk_reserva.fk_pasajero.es_infante == True %}
+          <p><i class="pe-7s-user text-cyan-600 mr-2"></i><strong>Infante:</strong> Si</p>
+          {% else %}
+          <p><i class="pe-7s-user text-cyan-600 mr-2"></i><strong>Infante:</strong> No</p>
+          {% endif %}
           <p><i class="pe-7s-map-marker text-cyan-600 mr-2"></i><strong>Origen:</strong> {{ pago.fk_reserva.fk_vuelo.fk_aeropuerto_salida }}</p>
           <p><i class="pe-7s-flag text-cyan-600 mr-2"></i><strong>Destino:</strong> {{ pago.fk_reserva.fk_vuelo.fk_aeropuerto_llegada }}</p>
           <p><i class="pe-7s-date text-cyan-600 mr-2"></i><strong>Fecha Salida:</strong> {{ pago.fk_reserva.fk_vuelo.fecha_hora_salida|date:"d M Y - H:i" }}</p>

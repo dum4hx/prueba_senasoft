@@ -36,8 +36,8 @@ class AdminCiudades(admin.ModelAdmin):
 admin.site.register(Ciudades, AdminCiudades)
 
 class AdminAeropuertos(admin.ModelAdmin):
-    list_display = ('nombre', 'fk_ciudad', 'codigo_iata')
-    list_filter = ('fk_ciudad',)
+    list_display = ('nombre', 'fk_ciudad', 'codigo_iata', 'activo')
+    list_filter = ('fk_ciudad', 'activo')
     search_fields = ('nombre', 'codigo_iata')
     
 admin.site.register(Aeropuertos, AdminAeropuertos)

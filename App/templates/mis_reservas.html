@@ -38,6 +38,41 @@
                 <span class="mx-2 text-cyan-600">→</span>
                 {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }} ({{ reserva.fk_vuelo.fk_aeropuerto_llegada.codigo_iata }})
               </div>
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-user text-cyan-600 mr-2"></i>
+                Pasajero:
+                {% if reserva.fk_pasajero %}
+                <button type="button" 
+                        onclick="abrirModalAsociar('{{ reserva.idReserva }}')" 
+                        class="ml-1 font-medium text-cyan-700 hover:underline hover:text-cyan-800 transition">
+                  {{ reserva.fk_pasajero.nombre }} {{ reserva.fk_pasajero.primer_apellido }} {{ reserva.fk_pasajero.segundo_apellido }}
+                </button>
+                {% else %}
+                <button type="button" 
+                        onclick="abrirModalAsociar('{{ reserva.idReserva }}')" 
+                        class="ml-1 font-medium text-cyan-700 hover:underline hover:text-cyan-800 transition">
+                  Sin Pasajero
+                </button>
+                {% endif %}
+              </div>
+
+              {% if reserva.fk_pasajero.es_infante == True %}
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+                Infante: <span class="ml-1 font-medium">Si</span>
+              </div>
+              {% else %}
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+                Infante: <span class="ml-1 font-medium">No</span>
+              </div>
+
+              {% endif %}
+
+
               
               <div class="flex items-center text-gray-600 text-sm">
                 <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
@@ -59,17 +94,21 @@
                 ${{ reserva.fk_vuelo.precio|floatformat:0 }}
               </div>
 
-              <div class="flex items-center text-cyan-700 font-bold text-lg">
-                <i class="pe-7s-user text-cyan-600 mr-2"></i>
-                ${{ reserva.fk_usuario.nombre }}
-              </div>
+              
             </div>
 
             <!-- Checkbox -->
             <div>
-              <input type="checkbox" name="reservas_seleccionadas" value="{{ reserva.idReserva }}"
-                     class="w-6 h-6 text-cyan-700 border-gray-300 rounded focus:ring-2 focus:ring-cyan-600 cursor-pointer">
+              {% if reserva.fk_pasajero %}
+                <input type="checkbox" name="reservas_seleccionadas" value="{{ reserva.idReserva }}"
+                      class="w-6 h-6 text-cyan-700 border-gray-300 rounded focus:ring-2 focus:ring-cyan-600 cursor-pointer">
+              {% else %}
+                <input type="checkbox" disabled
+                      title="Debes asociar un pasajero antes de poder pagar esta reserva"
+                      class="w-6 h-6 text-gray-400 border-gray-300 rounded cursor-not-allowed">
+              {% endif %}
             </div>
+
           </div>
         </div>
         {% endfor %}
@@ -89,6 +128,41 @@
       </div>
     {% endif %}
   </div>
+
+  <!-- Modal Asociar Usuario -->
+<div id="modalAsociar" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+    <h3 class="text-xl font-semibold text-cyan-700 mb-4 text-center">Asociar Reserva a Usuario</h3>
+
+    <form id="formAsociarUsuario" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" id="reservaId">
+
+      <div>
+        <label for="cedula" class="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+        <input type="text" id="cedula" 
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 outline-none"
+               placeholder="Ingresa la cédula del usuario" required>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-3">
+        <button type="button" onclick="cerrarModal()" 
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition">
+          Cancelar
+        </button>
+        <button type="submit" 
+                class="px-4 py-2 bg-cyan-700 text-white rounded-lg hover:bg-cyan-800 transition">
+          Asociar
+        </button>
+      </div>
+    </form>
+
+    <!-- Botón cerrar -->
+    <button onclick="cerrarModal()" 
+            class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+  </div>
+</div>
+
 </div>
 
 <!-- Script de eliminación -->
@@ -112,6 +186,53 @@ function eliminarReserva(idReserva) {
   })
   .catch(() => alert('Error al eliminar la reserva'));
 }
+
+// --- Modal asociar usuario ---
+const modal = document.getElementById('modalAsociar');
+const formAsociar = document.getElementById('formAsociarUsuario');
+const inputReservaId = document.getElementById('reservaId');
+const inputCedula = document.getElementById('cedula');
+
+function abrirModalAsociar(idReserva) {
+  inputReservaId.value = idReserva;
+  inputCedula.value = '';
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function cerrarModal() {
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+// Enviar formulario para asociar
+formAsociar.addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const idReserva = inputReservaId.value;
+  const cedula = inputCedula.value;
+
+  fetch(`{% url 'asociar_reserva_usuario' %}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}',
+    },
+    body: JSON.stringify({ idReserva, cedula })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert('Reserva asociada correctamente.');
+      cerrarModal();
+      location.reload();
+    } else {
+      alert(data.message || 'No se encontró el usuario.');
+    }
+  })
+  .catch(() => alert('Error al asociar la reserva.'));
+});
+
 </script>
 
 {% endblock %}

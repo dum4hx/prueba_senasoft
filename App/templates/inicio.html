@@ -27,7 +27,7 @@
           <option value="">Seleccione</option>
           {% for aeropuerto in aeropuertos %}
           <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.origen == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
-            {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
+            {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.nombre }})
           </option>
           {% endfor %}
         </select>
@@ -40,7 +40,7 @@
           <option value="">Seleccione</option>
           {% for aeropuerto in aeropuertos %}
           <option value="{{ aeropuerto.idAeropuerto }}" {% if request.GET.destino == aeropuerto.idAeropuerto|stringformat:"s" %}selected{% endif %}>
-            {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.codigo_iata }})
+            {{ aeropuerto.fk_ciudad.nombre }} ({{ aeropuerto.nombre }})
           </option>
           {% endfor %}
         </select>
@@ -98,7 +98,7 @@
           <p class="text-gray-700"><strong>Llegada:</strong> {{ vuelo.fecha_hora_llegada|date:"d M Y - H:i" }}</p>
           <p class="text-gray-700"><strong>Avión:</strong> {{ vuelo.fk_avion.fk_modelo_avion.nombre }}</p>
           <p class="text-gray-700"><strong>Capacidad:</strong> {{ vuelo.fk_avion.fk_modelo_avion.capacidad_pasajeros }} Pasajeros</p>
-          <p class="text-gray-700"><strong>Asientos disponibles:</strong> {{ vuelo.asientos_disponibles }}</p>
+          <p class="text-gray-700"><strong>Asientos disponibles:</strong> {{ vuelo.asientos_disponibles }} Pasajeros</p>
           <p class="text-gray-700"><strong>Precio:</strong> {{ vuelo.precio|floatformat:0 }} COP</p>
         </div>
 
@@ -152,7 +152,7 @@
       <div id="resumenSeleccion"
         class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-md border border-cyan-100 p-5 mb-6 hidden">
         <p class="text-gray-700 font-medium" id="textoResumen">
-          Has seleccionado: <span id="contadorSeleccion" class="font-bold text-cyan-700">0</span> vuelos.
+          Has seleccionado: <span id="contadorSeleccion" class="font-bold text-cyan-700">0</span> vuelo(s).
         </p>
         <p class="text-sm text-gray-500" id="detalleResumen"></p>
       </div>

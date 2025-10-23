@@ -1,7 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Usuarios, TipoIdentificacion, Aeropuertos, Vuelos, Reservas, MetodosPago, Pagos, Tiquetes
-from .forms import FormUsuarios
-from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -11,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta, date
 from django.views.decorators.http import require_POST
-from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import uuid
@@ -22,8 +19,17 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.units import inch
-from django.contrib.auth.decorators import login_required
 from django.db.models import F
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+import qrcode
+from io import BytesIO
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from datetime import datetime
 
 def login_view(request):
     if request.method == 'POST':
@@ -35,9 +41,8 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            return redirect('/')  # Redirige a la vista principal o panel
-
-        # Si no es admin, intentar autenticación como USUARIO del modelo Usuarios
+            return redirect('/')
+        
         try:
             usuario = Usuarios.objects.get(numero_identificacion=identificador, activo=True)
         except Usuarios.DoesNotExist:
@@ -61,20 +66,28 @@ def login_view(request):
     return render(request, 'login.html')
 
 def registro_view(request):
-
     tipos_identificacion = TipoIdentificacion.objects.filter(activo=True)
 
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
         primer_apellido = request.POST.get('primer_apellido')
         segundo_apellido = request.POST.get('segundo_apellido')
-        fecha_nacimiento = request.POST.get('fecha_nacimiento')
+        fecha_nacimiento_str = request.POST.get('fecha_nacimiento')
         genero = request.POST.get('genero')
         numero_identificacion = request.POST.get('numero_identificacion')
         tipo_identificacion_id = request.POST.get('tipo_identificacion')
         celular = request.POST.get('celular')
         email = request.POST.get('email')
         contraseña = request.POST.get('contraseña')
+
+        # Convertimos la fecha en string a objeto date
+        fecha_nacimiento = None
+        if fecha_nacimiento_str:
+            try:
+                fecha_nacimiento = datetime.strptime(fecha_nacimiento_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Formato de fecha inválido.")
+                return redirect('registro')
 
         # Validar que no exista el usuario
         if Usuarios.objects.filter(numero_identificacion=numero_identificacion).exists():
@@ -170,7 +183,6 @@ def inicio(request):
         'fecha_max': fecha_max
     })
 
-    
 @require_POST
 @login_required
 def seleccionar_vuelos(request):
@@ -193,9 +205,6 @@ def seleccionar_vuelos(request):
         'num_pasajeros': num_pasajeros,
         'pasajeros': pasajeros,
     })
-
-
-
 
 @require_POST
 @login_required
@@ -235,7 +244,7 @@ def confirmar_reserva(request):
                 errores.append(f"Pasajero {pasajero} no seleccionó asiento en vuelo {vuelo_id}.")
                 continue
 
-            if Reservas.objects.filter(fk_vuelo=vuelo, asiento=asiento, activo=True).exists():
+            if Reservas.objects.filter(fk_vuelo=vuelo, asiento=asiento).exists():
                 errores.append(f"Asiento {asiento} ocupado en vuelo {vuelo_id}.")
                 continue
 
@@ -295,7 +304,25 @@ def mis_reservas(request):
     reservas = Reservas.objects.filter(fk_usuario=usuario, activo=True)
     return render(request, 'mis_reservas.html', {'reservas': reservas})
 
+@csrf_exempt
+def asociar_reserva_usuario(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        id_reserva = data.get('idReserva')
+        cedula = data.get('cedula')
 
+        try:
+            usuario = Usuarios.objects.get(numero_identificacion=cedula)
+            reserva = Reservas.objects.get(idReserva=id_reserva)
+            reserva.fk_pasajero = usuario
+            reserva.save()
+            return JsonResponse({'success': True})
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Usuario no encontrado'})
+        except Reservas.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Reserva no encontrada'})
+
+    return JsonResponse({'success': False, 'message': 'Método no permitido'})
 
 @require_POST
 @login_required
@@ -387,15 +414,12 @@ def mis_vuelos(request):
     
     return render(request, 'mis_vuelos.html', context)
 
-
-
 @login_required
 def descargar_tiquete_pdf(request, id_pago):
     pago = get_object_or_404(Pagos, idPago=id_pago, pagado=True)
     reserva = pago.fk_reserva
     vuelo = reserva.fk_vuelo
     tiquete = Tiquetes.objects.filter(fk_pago=pago).first()
-
 
     # Crear respuesta tipo PDF
     response = HttpResponse(content_type='application/pdf')
@@ -411,7 +435,7 @@ def descargar_tiquete_pdf(request, id_pago):
         name='Titulo',
         parent=styles['Heading1'],
         alignment=1,
-        fontSize=20,
+        fontSize=22,
         textColor=colors.HexColor("#0891b2"),
         spaceAfter=20
     )
@@ -432,13 +456,28 @@ def descargar_tiquete_pdf(request, id_pago):
 
     # Encabezado principal
     elements.append(Paragraph("✈️ Tiquete de Vuelo", title_style))
-    elements.append(Paragraph(f"Código de Tiquete: <b>{tiquete.codigo if tiquete else 'No generado'}</b>", normal_style))
-    elements.append(Spacer(1, 12))
+    codigo_tiquete = tiquete.codigo if tiquete else 'No generado'
+    elements.append(Spacer(1, 20))
 
-    # Tabla con datos del vuelo
+    # Generar código QR con el código del tiquete
+    qr_text = f"{codigo_tiquete}"
+    qr = qrcode.make(qr_text)
+    qr_buffer = BytesIO()
+    qr.save(qr_buffer, format='PNG')
+    qr_buffer.seek(0)
+    qr_img = Image(qr_buffer, width=100, height=100)
+    qr_img.hAlign = 'CENTER'
+
+    elements.append(qr_img)
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph(qr_text, small_style))
+    elements.append(Spacer(1, 25))
+
+    # Datos del tiquete
     data = [
         ['Reserva ID', reserva.idReserva],
-        ['Usuario', reserva.fk_usuario.nombre],
+        ['Pasajero', f"{reserva.fk_pasajero.nombre} {reserva.fk_pasajero.primer_apellido or ''} {reserva.fk_pasajero.segundo_apellido or ''}".strip()],
+        ['Infante', reserva.fk_pasajero.es_infante and 'Sí' or 'No'],
         ['Vuelo', vuelo.idVuelo],
         ['Origen', str(vuelo.fk_aeropuerto_salida)],
         ['Destino', str(vuelo.fk_aeropuerto_llegada)],
@@ -449,6 +488,7 @@ def descargar_tiquete_pdf(request, id_pago):
         ['Monto', f"${pago.monto:,.0f}"]
     ]
 
+    # Tabla estilizada
     table = Table(data, colWidths=[150, 330])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0891b2")),
@@ -458,17 +498,23 @@ def descargar_tiquete_pdf(request, id_pago):
         ('FONTSIZE', (0, 0), (-1, 0), 12),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#0891b2")),
-        ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.HexColor("#a7f3d0")),
+        ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor("#0891b2")),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#a7f3d0")),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 11),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
 
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 25))
     elements.append(Paragraph("Gracias por viajar con nosotros. ¡Feliz vuelo! 🛫", small_style))
 
     # Construir PDF
     doc.build(elements)
     return response
+
+
+
 
 
 
