@@ -3,32 +3,20 @@ from .models import Usuarios, TipoIdentificacion, Aeropuertos, Vuelos, Reservas,
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.contrib.auth.models import User
-from .models import Usuarios
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
 from datetime import timedelta, date
 from django.views.decorators.http import require_POST
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-import uuid
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.units import inch
-from django.db.models import F
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import qrcode
+import uuid
 from io import BytesIO
-from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from datetime import datetime
 
 def login_view(request):
