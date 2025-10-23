@@ -51,6 +51,7 @@ class Usuarios(models.Model):
     def __str__(self):
         return f"Usuario: {self.nombre} - Numero: {self.numero_identificacion}"
     
+# Signal para calcular si el usuario es infante después de guardar  
 @receiver(post_save, sender=Usuarios)
 def calcular_es_infante(sender, instance, **kwargs):
     if instance.fecha_nacimiento:

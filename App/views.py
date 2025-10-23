@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from datetime import timedelta, date
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -37,7 +37,7 @@ def login_view(request):
             usuario = None
 
         if usuario:
-            # Verificamos la contraseña manualmente (ya que está en texto plano en el modelo)
+            # Verificamos la contraseña manualmente
             if usuario.contraseña == contraseña:
                 # Autenticar usando el User vinculado
                 user = authenticate(request, username=usuario.numero_identificacion, password=contraseña)
@@ -54,8 +54,10 @@ def login_view(request):
     return render(request, 'login.html')
 
 def registro_view(request):
+    
     tipos_identificacion = TipoIdentificacion.objects.filter(activo=True)
-
+    
+    # Capturamos datos del formulario
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
         primer_apellido = request.POST.get('primer_apellido')
@@ -110,7 +112,7 @@ def inicio(request):
     aeropuertos = Aeropuertos.objects.filter(activo=True)
     vuelos_ida = vuelos_vuelta = None
 
-    # Rango de fechas permitido (máx. 2 meses hacia adelante)
+    # Rango de fechas permitido 2 meses maximo
     fecha_hoy = date.today()
     fecha_max = fecha_hoy + timedelta(days=60)
 
@@ -121,7 +123,7 @@ def inicio(request):
         fecha_regreso = request.GET.get('fecha_regreso')
         tipo_viaje = request.GET.get('tipo_viaje')
 
-        # --- VUELOS DE IDA ---
+        # Vuelos de ida
         filtros_ida = {}
         if origen:
             filtros_ida['fk_aeropuerto_salida_id'] = origen
@@ -142,7 +144,7 @@ def inicio(request):
             vuelo.asientos_disponibles = max(capacidad - reservas_activas, 0)
             vuelos_ida.append(vuelo)
 
-        # --- VUELOS DE VUELTA (solo si aplica) ---
+        # Vuelos de vuelta
         if tipo_viaje == 'ida_vuelta' and fecha_regreso:
             filtros_vuelta = {}
             if destino:
@@ -163,13 +165,7 @@ def inicio(request):
                 vuelo.asientos_disponibles = max(capacidad - reservas_activas, 0)
                 vuelos_vuelta.append(vuelo)
 
-    return render(request, 'inicio.html', {
-        'aeropuertos': aeropuertos,
-        'vuelos_ida': vuelos_ida,
-        'vuelos_vuelta': vuelos_vuelta,
-        'fecha_hoy': fecha_hoy,
-        'fecha_max': fecha_max
-    })
+    return render(request, 'inicio.html', {'aeropuertos': aeropuertos, 'vuelos_ida': vuelos_ida, 'vuelos_vuelta': vuelos_vuelta, 'fecha_hoy': fecha_hoy, 'fecha_max': fecha_max})
 
 @require_POST
 @login_required
@@ -188,11 +184,7 @@ def seleccionar_vuelos(request):
 
     pasajeros = range(1, num_pasajeros + 1)
 
-    return render(request, 'resumen_reserva.html', {
-        'vuelos': vuelos,
-        'num_pasajeros': num_pasajeros,
-        'pasajeros': pasajeros,
-    })
+    return render(request, 'resumen_reserva.html', {'vuelos': vuelos, 'num_pasajeros': num_pasajeros, 'pasajeros': pasajeros})
 
 @require_POST
 @login_required
@@ -252,6 +244,18 @@ def confirmar_reserva(request):
     return redirect('mis_reservas')
 
 @login_required
+@require_GET
+def validar_asiento(request):
+    vuelo_id = request.GET.get('vuelo_id')
+    asiento = request.GET.get('asiento')
+
+    if not vuelo_id or not asiento:
+        return JsonResponse({'error': 'Parámetros incompletos'}, status=400)
+
+    ocupado = Reservas.objects.filter(fk_vuelo_id=vuelo_id, asiento=asiento, activo=True).exists()
+    return JsonResponse({'ocupado': ocupado})
+
+@login_required
 @require_POST
 def eliminar_reserva(request, id_reserva):
     try:
@@ -262,33 +266,15 @@ def eliminar_reserva(request, id_reserva):
         messages.error(request, "No se encontró la reserva o no tienes permisos para eliminarla.")
     return redirect('mis_reservas')
 
-
-@login_required
-def seleccionar_asientos(request):
-    vuelos = Vuelos.objects.filter(activo=True)
-
-    # Crear un diccionario: vuelo_id -> lista de asientos ocupados
-    asientos_ocupados = {}
-    for vuelo in vuelos:
-        ocupados = Reservas.objects.filter(fk_vuelo=vuelo, activo=True).values_list('asiento', flat=True)
-        asientos_ocupados[vuelo.idVuelo] = list(ocupados)
-
-    context = {
-        'vuelos': vuelos,
-        'asientos_ocupados': asientos_ocupados
-    }
-    return render(request, 'vuelos/seleccionar_asientos.html', context)
-
-
 @login_required
 def mis_reservas(request):
     try:
         usuario = Usuarios.objects.get(user=request.user)
+        
     except Usuarios.DoesNotExist:
         messages.error(request, "Tu cuenta no está asociada a un perfil de usuario.")
         return redirect('inicio')
-
-    # 🔹 Mostrar solo reservas activas (no pagadas)
+    
     reservas = Reservas.objects.filter(fk_usuario=usuario, activo=True)
     return render(request, 'mis_reservas.html', {'reservas': reservas})
 
@@ -329,13 +315,7 @@ def procesar_pago(request):
 
     metodos = MetodosPago.objects.filter(activo=True)
 
-    context = {
-        'reservas': reservas,
-        'total': total,
-        'metodos': metodos
-    }
-    return render(request, 'procesar_pago.html', context)
-
+    return render(request, 'procesar_pago.html', {'reservas': reservas, 'total': total,'metodos': metodos})
 
 @require_POST
 @login_required
@@ -387,6 +367,7 @@ def confirmar_pago(request):
         f"Se generaron {tiquetes_creados} tiquete(s). Total pagado: ${total_pagado:,.0f}"
     )
     return redirect('mis_vuelos')
+
 @login_required
 def mis_vuelos(request):
     usuario = Usuarios.objects.get(user=request.user)
@@ -397,10 +378,8 @@ def mis_vuelos(request):
         'fk_reserva__fk_vuelo',
         'fk_metodo_pago'
     ).order_by('-fecha_pago')
-
-    context = {'pagos': pagos}
     
-    return render(request, 'mis_vuelos.html', context)
+    return render(request, 'mis_vuelos.html', {'pagos': pagos})
 
 @login_required
 def descargar_tiquete_pdf(request, id_pago):
@@ -466,7 +445,6 @@ def descargar_tiquete_pdf(request, id_pago):
         ['Reserva ID', reserva.idReserva],
         ['Pasajero', f"{reserva.fk_pasajero.nombre} {reserva.fk_pasajero.primer_apellido or ''} {reserva.fk_pasajero.segundo_apellido or ''}".strip()],
         ['Infante', reserva.fk_pasajero.es_infante and 'Sí' or 'No'],
-        ['Vuelo', vuelo.idVuelo],
         ['Origen', str(vuelo.fk_aeropuerto_salida)],
         ['Destino', str(vuelo.fk_aeropuerto_llegada)],
         ['Fecha de Salida', vuelo.fecha_hora_salida.strftime("%Y-%m-%d %H:%M")],

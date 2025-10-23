@@ -2,7 +2,7 @@
 {% block content %}
 
 <div class="bg-gray-100 py-8 px-6">
-  <div class="w-full mx-auto bg-white rounded-3xl shadow-2xl p-10">
+  <div class="w-full max-w-6xl mx-auto bg-white rounded-3xl shadow-2xl p-10">
 
     <!-- Encabezado -->
     <div class="text-center mb-10">
@@ -10,7 +10,9 @@
         <i class="pe-7s-ticket text-cyan-700 text-5xl"></i>
       </div>
       <h2 class="text-3xl font-bold text-cyan-700">Mis Reservas</h2>
-      <p class="text-gray-500 text-sm mt-2">Revisa tus vuelos, verifica los detalles y selecciona los que deseas pagar</p>
+      <p class="text-gray-500 text-sm mt-2">Revisa tus vuelos, verifica los detalles y selecciona los que deseas pagar
+        <br>
+      <span class="font-bold"><i class="pe-7s-id text-cyan-700"></i> Recuerda siempre asignar un pasajero a tu reserva.</span></p>
     </div>
 
     {% if reservas %}

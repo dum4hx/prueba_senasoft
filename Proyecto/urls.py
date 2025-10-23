@@ -35,6 +35,7 @@ urlpatterns = [
     path('mis_vuelos/descargar/<int:id_pago>/', views.descargar_tiquete_pdf, name='descargar_tiquete_pdf'),
     path('eliminar_reserva/<int:id_reserva>/', views.eliminar_reserva, name='eliminar_reserva'),
     path('asociar_reserva_usuario/', views.asociar_reserva_usuario, name='asociar_reserva_usuario'),
+    path('api/validar-asiento/', views.validar_asiento, name='validar_asiento'),
 
 
 
