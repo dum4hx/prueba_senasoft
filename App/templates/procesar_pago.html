@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-gray-100 py-12 px-4 flex justify-center">
+  <div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-10">
+
+    <!-- Encabezado -->
+    <div class="text-center mb-10">
+      <div class="flex items-center justify-center mb-3">
+        <i class="pe-7s-credit text-cyan-700 text-5xl"></i>
+      </div>
+      <h2 class="text-3xl font-bold text-cyan-700">Confirmar Pago</h2>
+      <p class="text-gray-500 text-sm mt-2">Revisa los detalles de tus reservas antes de confirmar el pago</p>
+    </div>
+
+    <form action="{% url 'confirmar_pago' %}" method="POST" class="space-y-8" id="pagoForm">
+      {% csrf_token %}
+      
+      <!-- Tarjetas de reservas -->
+      <div class="space-y-4">
+        {% for reserva in reservas %}
+        <div class="relative border border-gray-200 bg-gray-50 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <div class="absolute top-0 left-0 h-full w-2 bg-cyan-600"></div>
+          <div class="p-6 space-y-2">
+            <div class="flex items-center text-gray-800 font-semibold text-lg">
+              <i class="pe-7s-plane text-cyan-600 text-2xl mr-2"></i>
+              {{ reserva.fk_vuelo.fk_aeropuerto_salida.nombre }} ({{ reserva.fk_vuelo.fk_aeropuerto_salida.codigo_iata }})
+              <span class="mx-2 text-cyan-600">→</span>
+              {{ reserva.fk_vuelo.fk_aeropuerto_llegada.nombre }} ({{ reserva.fk_vuelo.fk_aeropuerto_llegada.codigo_iata }})
+            </div>
+
+            <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-user text-cyan-600 mr-2"></i>
+                Pasajero: <span class="ml-1 font-medium">{{ reserva.fk_pasajero.nombre }} {{ reserva.fk_pasajero.primer_apellido }} {{ reserva.fk_pasajero.segundo_apellido }}</span>
+            </div>
+
+            {% if reserva.fk_pasajero.es_infante == True %}
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+                Infante: <span class="ml-1 font-medium">Si</span>
+              </div>
+              {% else %}
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+                Infante: <span class="ml-1 font-medium">No</span>
+              </div>
+
+            {% endif %}
+
+            <div class="flex items-center text-gray-600 text-sm">
+              <i class="pe-7s-drawer text-cyan-600 mr-2"></i>
+              Asiento: <span class="ml-1 font-medium">{{ reserva.asiento|default:"No asignado" }}</span>
+            </div>
+            <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-date text-cyan-600 mr-2"></i>
+                Fecha Salida: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_salida|date:"d/m/Y - H:i" }}</span>
+              </div>
+
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="pe-7s-date text-cyan-600 mr-2"></i>
+                Fecha Llegada: <span class="ml-1 font-medium">{{ reserva.fk_vuelo.fecha_hora_llegada|date:"d/m/Y - H:i" }}</span>
+              </div>
+
+            <div class="flex items-center text-cyan-700 font-bold text-lg">
+              <i class="pe-7s-cash text-cyan-600 mr-2"></i>
+              ${{ reserva.fk_vuelo.precio|floatformat:0 }}
+            </div>
+          </div>
+          <input type="hidden" name="reservas_confirmadas" value="{{ reserva.idReserva }}">
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Método de pago -->
+      <div>
+        <label for="metodo_pago" class="block text-gray-700 font-semibold mb-2 flex items-center">
+          <i class="pe-7s-wallet text-cyan-600 text-xl mr-2"></i>
+          Método de Pago
+        </label>
+        <select name="metodo_pago" id="metodo_pago"
+          class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-cyan-600 focus:outline-none bg-white shadow-sm text-gray-700">
+          {% for metodo in metodos %}
+          <option value="{{ metodo.idMetodoPago }}">{{ metodo.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Términos y condiciones -->
+      <div class="flex items-start space-x-3 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+        <input type="checkbox" id="terminos" class="mt-1 w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500 cursor-pointer">
+        <label for="terminos" class="text-gray-700 text-sm leading-relaxed cursor-pointer">
+          Acepto los 
+          <a href="#" class="text-cyan-700 font-semibold hover:underline">Términos y Condiciones</a> 
+          del servicio y confirmo que la información de mi reserva es correcta.
+        </label>
+      </div>
+
+      <!-- Total y botón -->
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-6 mt-6">
+        <p class="text-lg font-semibold text-gray-800">
+          Total a pagar:
+          <span class="text-cyan-700 font-bold text-xl ml-2">${{ total|floatformat:0 }}</span>
+        </p>
+
+        <button id="btnPagar" type="submit" disabled
+          class="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 shadow-md opacity-50 cursor-not-allowed">
+          <i class="pe-7s-credit text-xl"></i>
+          <span>Pagar ahora</span>
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- Overlay de carga -->
+<div id="loaderOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50">
+  <div class="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+  <p class="text-white text-lg font-semibold tracking-wide">Procesando tu pago...</p>
+</div>
+
+<script>
+  const btnPagar = document.getElementById('btnPagar');
+  const loaderOverlay = document.getElementById('loaderOverlay');
+  const terminos = document.getElementById('terminos');
+  const form = document.getElementById('pagoForm');
+
+  // Habilitar o deshabilitar botón según el checkbox
+  terminos.addEventListener('change', () => {
+    if (terminos.checked) {
+      btnPagar.disabled = false;
+      btnPagar.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+      btnPagar.disabled = true;
+      btnPagar.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  });
+
+  // Mostrar overlay de carga al enviar
+  form.addEventListener('submit', (e) => {
+    if (!terminos.checked) {
+      e.preventDefault();
+      alert('Debes aceptar los Términos y Condiciones antes de continuar.');
+      return;
+    }
+
+    loaderOverlay.classList.remove('hidden');
+    btnPagar.disabled = true;
+
+    // Simula la espera de la pasarela
+    setTimeout(() => {
+      form.submit();
+    }, 2500);
+  });
+</script>
+
+{% endblock %}

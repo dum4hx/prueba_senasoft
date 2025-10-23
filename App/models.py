@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from datetime import date
 
 class TipoIdentificacion(models.Model):
     
@@ -37,6 +38,7 @@ class Usuarios(models.Model):
     fk_tipo_identificacion = models.ForeignKey(TipoIdentificacion, on_delete=models.CASCADE)
     celular = models.CharField(max_length=20)
     email = models.EmailField(unique=True)
+    es_infante = models.BooleanField(default=False, null=True, blank=True)
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateField(auto_now_add=True)
     fecha_actualizacion = models.DateField(auto_now=True)
@@ -48,6 +50,21 @@ class Usuarios(models.Model):
         
     def __str__(self):
         return f"Usuario: {self.nombre} - Numero: {self.numero_identificacion}"
+    
+# Signal para calcular si el usuario es infante después de guardar  
+@receiver(post_save, sender=Usuarios)
+def calcular_es_infante(sender, instance, **kwargs):
+    if instance.fecha_nacimiento:
+        hoy = date.today()
+        edad = hoy.year - instance.fecha_nacimiento.year - (
+            (hoy.month, hoy.day) < (instance.fecha_nacimiento.month, instance.fecha_nacimiento.day)
+        )
+
+        es_infante = edad < 3
+
+        if instance.es_infante != es_infante:
+            instance.es_infante = es_infante
+            instance.save(update_fields=['es_infante'])
     
 @receiver(post_save, sender=Usuarios)
 def crear_usuario_user(sender, instance, created, **kwargs):
@@ -64,7 +81,6 @@ def crear_usuario_user(sender, instance, created, **kwargs):
 
         email = instance.email
 
-        # Creamos el usuario en Django
         user = User.objects.create_user(
             username=username,
             password=password,
@@ -72,7 +88,6 @@ def crear_usuario_user(sender, instance, created, **kwargs):
             email=email
         )
 
-        # Asociamos el user al paciente y guardamos
         instance.user = user
         instance.save()
 
@@ -152,6 +167,7 @@ class Vuelos(models.Model):
     fk_aeropuerto_llegada = models.ForeignKey(Aeropuertos, on_delete=models.CASCADE, related_name='aeropuerto_llegada')
     fecha_hora_salida = models.DateTimeField()
     fecha_hora_llegada = models.DateTimeField()
+    precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateField(auto_now_add=True)
     fecha_actualizacion = models.DateField(auto_now=True)
@@ -169,6 +185,7 @@ class Reservas(models.Model):
     idReserva = models.AutoField(primary_key=True)
     fk_vuelo = models.ForeignKey(Vuelos, on_delete=models.CASCADE)
     fk_usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE)
+    fk_pasajero = models.ForeignKey(Usuarios, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name='pasajero_reserva')
     asiento = models.CharField(max_length=3, default=None)
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateField(auto_now_add=True)

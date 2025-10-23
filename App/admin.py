@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import TipoIdentificacion, Usuarios, Aviones, Ciudades, Aeropuertos, Vuelos, Reservas, MetodosPago, Pagos, Tiquetes
+from .models import TipoIdentificacion, Usuarios, Aviones, Ciudades, Aeropuertos, Vuelos, Reservas, MetodosPago, Pagos, Tiquetes, ModelosAviones
 
 class AdminTipoIdentificacion(admin.ModelAdmin):
     list_display = ('nombre', 'activo')
@@ -15,6 +15,13 @@ class AdminUsuarios(admin.ModelAdmin):
     
 admin.site.register(Usuarios, AdminUsuarios)
 
+class AdminModelosAviones(admin.ModelAdmin):
+    list_display = ('nombre', 'capacidad_pasajeros', 'activo')
+    list_filter = ('activo',)
+    search_fields = ('nombre',)
+    
+admin.site.register(ModelosAviones, AdminModelosAviones)
+
 class AdminAviones(admin.ModelAdmin):
     list_display = ('fk_modelo_avion', 'matricula', 'activo')
     list_filter = ('fk_modelo_avion', 'activo')
@@ -29,21 +36,21 @@ class AdminCiudades(admin.ModelAdmin):
 admin.site.register(Ciudades, AdminCiudades)
 
 class AdminAeropuertos(admin.ModelAdmin):
-    list_display = ('nombre', 'fk_ciudad', 'codigo_iata')
-    list_filter = ('fk_ciudad',)
+    list_display = ('nombre', 'fk_ciudad', 'codigo_iata', 'activo')
+    list_filter = ('fk_ciudad', 'activo')
     search_fields = ('nombre', 'codigo_iata')
     
 admin.site.register(Aeropuertos, AdminAeropuertos)
 
 class AdminVuelos(admin.ModelAdmin):
-    list_display = ('fk_avion', 'fk_aeropuerto_llegada', 'fk_aeropuerto_salida', 'fecha_hora_salida', 'fecha_hora_llegada')
+    list_display = ('fk_avion', 'fk_aeropuerto_salida', 'fk_aeropuerto_llegada',  'fecha_hora_salida', 'fecha_hora_llegada')
     list_filter = ('fk_aeropuerto_salida', 'fk_aeropuerto_llegada')
     search_fields = ('fk_avion',)
 
 admin.site.register(Vuelos, AdminVuelos)
 
 class AdminReservas(admin.ModelAdmin):
-    list_display = ('fk_vuelo', 'fk_usuario')
+    list_display = ('fk_vuelo', 'fk_usuario', 'asiento')
     list_filter = ('fk_vuelo', 'fk_usuario')
     search_fields = ('fk_vuelo',)
     
@@ -64,8 +71,8 @@ class AdminPagos(admin.ModelAdmin):
 admin.site.register(Pagos, AdminPagos)
 
 class AdminTiquetes(admin.ModelAdmin):
-    list_display = ('fk_pago', 'activo')
-    list_filter = ('fk_pago',)
+    list_display = ('codigo', 'activo')
+    list_filter = ('codigo',)
 
 admin.site.register(Tiquetes, AdminTiquetes)
 

@@ -26,6 +26,20 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('registro/', views.registro_view, name='registro'),
     path('logout/', views.logout_view, name='logout'),
+    path('seleccionar_vuelos/', views.seleccionar_vuelos, name='seleccionar_vuelos'),
+    path('confirmar_reserva/', views.confirmar_reserva, name='confirmar_reserva'),
+    path('mis-reservas/', views.mis_reservas, name='mis_reservas'),
+    path('procesar-pago/', views.procesar_pago, name='procesar_pago'),
+    path('confirmar-pago/', views.confirmar_pago, name='confirmar_pago'),
+    path('mis_vuelos/', views.mis_vuelos, name='mis_vuelos'),
+    path('mis_vuelos/descargar/<int:id_pago>/', views.descargar_tiquete_pdf, name='descargar_tiquete_pdf'),
+    path('eliminar_reserva/<int:id_reserva>/', views.eliminar_reserva, name='eliminar_reserva'),
+    path('asociar_reserva_usuario/', views.asociar_reserva_usuario, name='asociar_reserva_usuario'),
+    path('api/validar-asiento/', views.validar_asiento, name='validar_asiento'),
+
+
+
+
 ]
 
 urlpatterns+=static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
